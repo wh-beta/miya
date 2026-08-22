@@ -1,0 +1,12 @@
+.container {
+  padding: 24rpx;
+}
+
+.draft {
+  margin-top: 24rpx;
+  padding: 16rpx;
+  border: 1rpx solid #ccc;
+  border-radius: 8rpx;
+  display: flex;
+  flex-direction: column;
+}

@@ -1,0 +1,13 @@
+<view class="container">
+  <text>学生首页</text>
+  <button bindtap="onViewTimetable">课程表</button>
+  <button bindtap="onSetReminder">设置提醒</button>
+  <button bindtap="onScanImage">扫描作业（拍照）</button>
+  <button bindtap="onUploadPdf">上传PDF</button>
+  <button bindtap="onToggleVoice">{{isRecording ? '停止录音' : '录制语音'}}</button>
+  <view wx:if="{{draftTask}}" class="draft">
+    <text>标题：{{draftTask.title}}</text>
+    <text>截止：{{draftTask.due_at || '未识别'}}</text>
+    <button bindtap="onSaveDraftTask">保存为作业</button>
+  </view>
+</view>

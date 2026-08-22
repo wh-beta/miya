@@ -1,0 +1,21 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/parent_home/parent_home",
+    "pages/student_home/student_home",
+    "pages/timetable/timetable",
+    "pages/pdf_upload_webview/pdf_upload_webview"
+  ],
+  "window": {
+    "navigationBarTitleText": "课后助手"
+  },
+  "networkTimeout": {
+    "uploadFile": 120000
+  },
+  "permission": {
+    "scope.record": {
+      "desc": "用于录制语音以自动创建作业提醒"
+    }
+  },
+  "sitemapLocation": "sitemap.json"
+}
