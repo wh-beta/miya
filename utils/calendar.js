@@ -43,7 +43,11 @@ function _promptOpenSettings(retryAdd, resolve, reject) {
   wx.showModal({
     title: 'Calendar access needed',
     content: 'Please enable calendar access in settings to add this to your calendar.',
-    confirmText: 'Open settings',
+    // wx.showModal caps confirmText at 4 characters — 'Open settings' (13
+    // chars) made this very recovery dialog fail with showModal:fail, which
+    // is exactly what both screenshots hit. '去设置' ("go to settings") is
+    // the conventional short label WeChat's own UI uses for this.
+    confirmText: '去设置',
     success: (modalRes) => {
       if (modalRes.confirm) {
         wx.openSetting({

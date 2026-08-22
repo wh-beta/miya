@@ -53,7 +53,9 @@ function ensureRecordAuth() {
           wx.showModal({
             title: 'Microphone access needed',
             content: 'Please enable microphone access in settings to record voice.',
-            confirmText: 'Open settings',
+            // wx.showModal caps confirmText at 4 characters — 'Open
+            // settings' silently fails the whole modal (showModal:fail).
+            confirmText: '去设置',
             success: (modalRes) => {
               if (modalRes.confirm) {
                 wx.openSetting({
