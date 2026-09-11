@@ -1,5 +1,5 @@
-const { API_BASE_URL } = require('../../utils/config.js');
-const { getOpenid, getMyProfile } = require('../../utils/auth.js');
+const { getMyProfile } = require('../../utils/auth.js');
+const { getWeeklySchedule, saveWeeklySchedule, downloadScheduleInviteQrcode, acceptScheduleInvite } = require('../../utils/schedule.js');
 const { SCHEDULE_WIDTH, computeSchedulePosterHeight, drawSchedulePoster } = require('../../utils/posterCanvas.js');
 
 const DAYS = ['周一', '周二', '周三', '周四', '周五'];
@@ -7,40 +7,6 @@ const PERIOD_COUNT = 9;
 
 function emptyGrid() {
   return Array.from({ length: PERIOD_COUNT }, () => ['', '', '', '', '']);
-}
-
-// One shared schedule for the whole app — no per-student scoping, see
-// ClassScheduleEntry's docstring in server/app/models.py for why.
-function fetchSchedule() {
-  return new Promise((resolve, reject) => {
-    wx.request({
-      url: `${API_BASE_URL}/weekly_schedule`,
-      method: 'GET',
-      data: { openid: getOpenid() },
-      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '获取失败'))),
-      fail: reject,
-    });
-  });
-}
-
-function saveSchedule(grid) {
-  const entries = [];
-  grid.forEach((row, pIdx) => {
-    row.forEach((subject, dIdx) => {
-      if (subject && subject.trim()) {
-        entries.push({ day_of_week: dIdx + 1, period: pIdx + 1, subject: subject.trim() });
-      }
-    });
-  });
-  return new Promise((resolve, reject) => {
-    wx.request({
-      url: `${API_BASE_URL}/weekly_schedule`,
-      method: 'PUT',
-      data: { openid: getOpenid(), entries },
-      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '保存失败'))),
-      fail: reject,
-    });
-  });
 }
 
 Page({
@@ -51,23 +17,38 @@ Page({
     editing: false,
     canEdit: false,
     loading: true,
+    unauthorized: false,
     shareCanvasWidth: SCHEDULE_WIDTH,
     shareCanvasHeight: 0,
   },
 
   onLoad(options) {
     this.setData({ role: options.role || 'parent', canEdit: (options.role || 'parent') === 'parent' });
-    // Confirm role from the account itself rather than trusting the query
-    // string alone — matches how other pages read canonical role state.
     getMyProfile()
       .then((p) => this.setData({ canEdit: p.role === 'parent' }))
       .catch(() => {});
     this._load();
   },
 
+  onShow() {
+    // Covers the already-logged-in path: scanning the invite wxacode routes
+    // straight to this page's onLoad/onShow with the scene string stashed
+    // by app.js. task_calendar.js's consumePending() covers the other path
+    // (cold launch, had to go through login first, lands there instead).
+    const code = wx.getStorageSync('pendingScheduleInviteCode');
+    if (!code) return;
+    wx.removeStorageSync('pendingScheduleInviteCode');
+    acceptScheduleInvite(code)
+      .then(() => {
+        wx.showToast({ title: '已获得课程表查看权限', icon: 'none' });
+        this._load();
+      })
+      .catch((err) => wx.showToast({ title: err.message || '课程表授权失败', icon: 'none' }));
+  },
+
   _load() {
-    this.setData({ loading: true, editing: false });
-    fetchSchedule()
+    this.setData({ loading: true, editing: false, unauthorized: false });
+    getWeeklySchedule()
       .then((entries) => {
         const grid = emptyGrid();
         entries.forEach((e) => {
@@ -78,8 +59,12 @@ Page({
         this.setData({ grid, loading: false });
       })
       .catch((err) => {
-        wx.showToast({ title: err.message || '加载课程表失败', icon: 'none' });
-        this.setData({ loading: false });
+        if (err.statusCode === 403) {
+          this.setData({ loading: false, unauthorized: true });
+        } else {
+          wx.showToast({ title: err.message || '加载课程表失败', icon: 'none' });
+          this.setData({ loading: false });
+        }
       });
   },
 
@@ -102,8 +87,16 @@ Page({
 
   onSave() {
     if (!this.data.canEdit) return;
+    const entries = [];
+    this.data.grid.forEach((row, pIdx) => {
+      row.forEach((subject, dIdx) => {
+        if (subject && subject.trim()) {
+          entries.push({ day_of_week: dIdx + 1, period: pIdx + 1, subject: subject.trim() });
+        }
+      });
+    });
     wx.showLoading({ title: '保存中...' });
-    saveSchedule(this.data.grid)
+    saveWeeklySchedule(entries)
       .then(() => {
         wx.hideLoading();
         wx.showToast({ title: '已保存' });
@@ -115,9 +108,36 @@ Page({
       });
   },
 
-  onShareSchedule() {
-    const height = computeSchedulePosterHeight(PERIOD_COUNT);
+  _shareWithQr(regenerate) {
     wx.showLoading({ title: '生成中...' });
+    downloadScheduleInviteQrcode(regenerate)
+      .then((qrPath) => this._renderAndShare(qrPath))
+      .catch(() => {
+        // The invite badge is a nice-to-have on top of the core "share the
+        // schedule as an image" feature — don't let a WeChat API hiccup
+        // (e.g. token/quota issue) block sharing entirely.
+        wx.showToast({ title: '邀请码生成失败，仅分享课程表', icon: 'none' });
+        this._renderAndShare(null);
+      });
+  },
+
+  onShareSchedule() {
+    this._shareWithQr(false);
+  },
+
+  onRegenerateInvite() {
+    if (!this.data.canEdit) return;
+    wx.showModal({
+      title: '重新生成邀请码？',
+      content: '之前分享过的课程表图片里的邀请码将失效，需要重新分享新图片。',
+      success: (res) => {
+        if (res.confirm) this._shareWithQr(true);
+      },
+    });
+  },
+
+  _renderAndShare(qrPath) {
+    const height = computeSchedulePosterHeight(PERIOD_COUNT, !!qrPath);
     this.setData({ shareCanvasHeight: height }, () => {
       wx.nextTick(() => {
         const query = this.createSelectorQuery();
@@ -136,22 +156,34 @@ Page({
           canvas.width = w * dpr;
           canvas.height = h * dpr;
           ctx.scale(dpr, dpr);
-          drawSchedulePoster(ctx, w, h, { grid: this.data.grid });
-          wx.canvasToTempFilePath({
-            canvas,
-            fileType: 'png',
-            success: (r) => {
-              wx.hideLoading();
-              wx.showShareImageMenu({
-                path: r.tempFilePath,
-                fail: (err) => wx.showToast({ title: err.errMsg || '分享失败', icon: 'none' }),
-              });
-            },
-            fail: () => {
-              wx.hideLoading();
-              wx.showToast({ title: '生成失败', icon: 'none' });
-            },
-          });
+
+          const finish = (qrImage) => {
+            drawSchedulePoster(ctx, w, h, { grid: this.data.grid, qrImage });
+            wx.canvasToTempFilePath({
+              canvas,
+              fileType: 'png',
+              success: (r) => {
+                wx.hideLoading();
+                wx.showShareImageMenu({
+                  path: r.tempFilePath,
+                  fail: (err) => wx.showToast({ title: err.errMsg || '分享失败', icon: 'none' }),
+                });
+              },
+              fail: () => {
+                wx.hideLoading();
+                wx.showToast({ title: '生成失败', icon: 'none' });
+              },
+            });
+          };
+
+          if (qrPath) {
+            const img = canvas.createImage();
+            img.onload = () => finish(img);
+            img.onerror = () => finish(null);
+            img.src = qrPath;
+          } else {
+            finish(null);
+          }
         });
       });
     });

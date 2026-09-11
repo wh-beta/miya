@@ -5,6 +5,10 @@
 
   <view wx:if="{{loading}}" class="empty-state">加载中...</view>
 
+  <view wx:elif="{{unauthorized}}" class="empty-state">
+    你还没有获得课程表查看权限。请联系已授权的家长，请对方"一键共享"课程表图片给你，长按识别图片里的小程序码即可获得权限。
+  </view>
+
   <block wx:else>
     <view class="action-row">
       <button wx:if="{{canEdit && !editing}}" size="mini" class="action-btn edit-btn" bindtap="onToggleEdit">✏️ 编辑</button>
@@ -12,6 +16,7 @@
         <button size="mini" class="action-btn cancel-btn" bindtap="onToggleEdit">取消</button>
         <button size="mini" class="action-btn save-btn" bindtap="onSave">保存</button>
       </block>
+      <button wx:if="{{canEdit && !editing}}" size="mini" class="action-btn regen-btn" bindtap="onRegenerateInvite">🔄 重置邀请码</button>
       <button size="mini" class="action-btn share-btn" bindtap="onShareSchedule">📤 一键共享</button>
     </view>
 

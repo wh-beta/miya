@@ -59,6 +59,11 @@
   background: #EEF4E9;
 }
 
+.regen-btn {
+  color: #8B978C;
+  background: #EEF4E9;
+}
+
 .share-btn {
   color: #146E64;
   background: #DCF0EA;

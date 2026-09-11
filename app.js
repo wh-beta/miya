@@ -16,10 +16,27 @@ function capturePendingMaterial(options) {
   }
 }
 
+// Set when this launch came from scanning the wxacode embedded in a shared
+// 课程表 poster (see server/app/wechat.py's get_schedule_invite_wxacode).
+// WeChat delivers that code's custom `scene` string as
+// launchOptions.query.scene, decodeURIComponent'd — NOT the top-level
+// `scene` field, which is WeChat's own numeric launch-source id (1047 for
+// "scanned a mini-program code"). Captured here for the same reason as
+// capturePendingMaterial above: not reliably present in the target page's
+// own onLoad(options) on a cold start, only in the app-level launch options.
+function capturePendingScheduleInvite(options) {
+  const launchOptions = options || (wx.getLaunchOptionsSync && wx.getLaunchOptionsSync());
+  const code = launchOptions && launchOptions.query && launchOptions.query.scene;
+  if (code) {
+    wx.setStorageSync('pendingScheduleInviteCode', decodeURIComponent(code));
+  }
+}
+
 App({
   onLaunch(options) {
     // Entry point; routing to the parent/student home page happens via app.json's pages list.
     capturePendingMaterial(options);
+    capturePendingScheduleInvite(options);
   },
   // If the mini-program was already running/suspended in the background
   // rather than being freshly cold-started, onLaunch won't fire again for
@@ -28,5 +45,6 @@ App({
   // WeChat treats a given "打开方式" tap as a cold start or a resume.
   onShow(options) {
     capturePendingMaterial(options);
+    capturePendingScheduleInvite(options);
   },
 });
