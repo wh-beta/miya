@@ -1,25 +1,9 @@
 <view class="page">
   <view class="header">
     <text class="title">课程表</text>
-    <text class="subtitle" wx:if="{{currentStudentName}}">{{currentStudentName}}</text>
-  </view>
-
-  <view class="chip-row" wx:if="{{role === 'parent' && students.length > 1}}">
-    <view
-      wx:for="{{students}}"
-      wx:key="id"
-      class="chip {{item.id === currentStudentId ? 'active' : ''}}"
-      data-id="{{item.id}}"
-      data-name="{{item.name}}"
-      bindtap="onSwitchStudent"
-    >{{item.name}}</view>
   </view>
 
   <view wx:if="{{loading}}" class="empty-state">加载中...</view>
-
-  <view wx:elif="{{noStudents}}" class="empty-state">
-    还没有关联学生，请先在"账号与学生绑定"中添加学生
-  </view>
 
   <block wx:else>
     <view class="action-row">

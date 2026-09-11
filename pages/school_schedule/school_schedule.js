@@ -1,5 +1,5 @@
 const { API_BASE_URL } = require('../../utils/config.js');
-const { getOpenid, getMyProfile, listLinkedStudents } = require('../../utils/auth.js');
+const { getOpenid, getMyProfile } = require('../../utils/auth.js');
 const { SCHEDULE_WIDTH, computeSchedulePosterHeight, drawSchedulePoster } = require('../../utils/posterCanvas.js');
 
 const DAYS = ['周一', '周二', '周三', '周四', '周五'];
@@ -9,10 +9,12 @@ function emptyGrid() {
   return Array.from({ length: PERIOD_COUNT }, () => ['', '', '', '', '']);
 }
 
-function fetchSchedule(studentId) {
+// One shared schedule for the whole app — no per-student scoping, see
+// ClassScheduleEntry's docstring in server/app/models.py for why.
+function fetchSchedule() {
   return new Promise((resolve, reject) => {
     wx.request({
-      url: `${API_BASE_URL}/weekly_schedule/${studentId}`,
+      url: `${API_BASE_URL}/weekly_schedule`,
       method: 'GET',
       data: { openid: getOpenid() },
       success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '获取失败'))),
@@ -21,7 +23,7 @@ function fetchSchedule(studentId) {
   });
 }
 
-function saveSchedule(studentId, grid) {
+function saveSchedule(grid) {
   const entries = [];
   grid.forEach((row, pIdx) => {
     row.forEach((subject, dIdx) => {
@@ -32,7 +34,7 @@ function saveSchedule(studentId, grid) {
   });
   return new Promise((resolve, reject) => {
     wx.request({
-      url: `${API_BASE_URL}/weekly_schedule/${studentId}`,
+      url: `${API_BASE_URL}/weekly_schedule`,
       method: 'PUT',
       data: { openid: getOpenid(), entries },
       success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '保存失败'))),
@@ -45,54 +47,27 @@ Page({
   data: {
     role: 'parent',
     days: DAYS,
-    students: [],
-    currentStudentId: null,
-    currentStudentName: '',
     grid: emptyGrid(),
     editing: false,
     canEdit: false,
     loading: true,
-    noStudents: false,
     shareCanvasWidth: SCHEDULE_WIDTH,
     shareCanvasHeight: 0,
   },
 
   onLoad(options) {
-    this.setData({ role: options.role || 'parent' });
-    this._init();
+    this.setData({ role: options.role || 'parent', canEdit: (options.role || 'parent') === 'parent' });
+    // Confirm role from the account itself rather than trusting the query
+    // string alone — matches how other pages read canonical role state.
+    getMyProfile()
+      .then((p) => this.setData({ canEdit: p.role === 'parent' }))
+      .catch(() => {});
+    this._load();
   },
 
-  _init() {
-    if (this.data.role === 'parent') {
-      listLinkedStudents()
-        .then((students) => {
-          if (!students.length) {
-            this.setData({ loading: false, noStudents: true });
-            return;
-          }
-          this.setData({ students, canEdit: true });
-          this._selectStudent(students[0].id, students[0].name);
-        })
-        .catch(() => {
-          wx.showToast({ title: '加载学生列表失败', icon: 'none' });
-          this.setData({ loading: false });
-        });
-    } else {
-      getMyProfile()
-        .then((p) => {
-          this.setData({ canEdit: false });
-          this._selectStudent(p.id, p.name || '我');
-        })
-        .catch(() => {
-          wx.showToast({ title: '加载失败', icon: 'none' });
-          this.setData({ loading: false });
-        });
-    }
-  },
-
-  _selectStudent(id, name) {
-    this.setData({ currentStudentId: id, currentStudentName: name, loading: true, editing: false });
-    fetchSchedule(id)
+  _load() {
+    this.setData({ loading: true, editing: false });
+    fetchSchedule()
       .then((entries) => {
         const grid = emptyGrid();
         entries.forEach((e) => {
@@ -108,17 +83,11 @@ Page({
       });
   },
 
-  onSwitchStudent(e) {
-    const { id, name } = e.currentTarget.dataset;
-    if (id === this.data.currentStudentId) return;
-    this._selectStudent(id, name);
-  },
-
   onToggleEdit() {
     if (!this.data.canEdit) return;
     if (this.data.editing) {
       // Cancelling: reload from server so in-progress edits aren't kept around half-applied.
-      this._selectStudent(this.data.currentStudentId, this.data.currentStudentName);
+      this._load();
     } else {
       this.setData({ editing: true });
     }
@@ -132,9 +101,9 @@ Page({
   },
 
   onSave() {
-    if (!this.data.canEdit || !this.data.currentStudentId) return;
+    if (!this.data.canEdit) return;
     wx.showLoading({ title: '保存中...' });
-    saveSchedule(this.data.currentStudentId, this.data.grid)
+    saveSchedule(this.data.grid)
       .then(() => {
         wx.hideLoading();
         wx.showToast({ title: '已保存' });
@@ -147,7 +116,6 @@ Page({
   },
 
   onShareSchedule() {
-    if (!this.data.currentStudentId) return;
     const height = computeSchedulePosterHeight(PERIOD_COUNT);
     wx.showLoading({ title: '生成中...' });
     this.setData({ shareCanvasHeight: height }, () => {
@@ -168,7 +136,7 @@ Page({
           canvas.width = w * dpr;
           canvas.height = h * dpr;
           ctx.scale(dpr, dpr);
-          drawSchedulePoster(ctx, w, h, { studentName: this.data.currentStudentName, grid: this.data.grid });
+          drawSchedulePoster(ctx, w, h, { grid: this.data.grid });
           wx.canvasToTempFilePath({
             canvas,
             fileType: 'png',

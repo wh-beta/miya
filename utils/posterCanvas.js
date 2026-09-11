@@ -178,9 +178,9 @@ function _pad2(n) {
   return String(n).padStart(2, '0');
 }
 
-// data: { studentName, grid } — grid[period-1][day-1] = subject string ('' = free period)
+// data: { grid } — grid[period-1][day-1] = subject string ('' = free period)
 function drawSchedulePoster(ctx, width, height, data) {
-  const { studentName, grid } = data;
+  const { grid } = data;
   const periodCount = grid.length;
 
   ctx.textAlign = 'left';
@@ -191,7 +191,7 @@ function drawSchedulePoster(ctx, width, height, data) {
   let y = S_PAD;
   ctx.fillStyle = '#24302A';
   ctx.font = 'bold 32px sans-serif';
-  ctx.fillText(truncateToWidth(ctx, `${studentName || ''}的课程表`, width - S_PAD * 2), S_PAD, y);
+  ctx.fillText('课程表', S_PAD, y);
 
   const today = new Date();
   ctx.fillStyle = '#8B978C';
