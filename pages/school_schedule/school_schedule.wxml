@@ -1,0 +1,67 @@
+<view class="page">
+  <view class="header">
+    <text class="title">课程表</text>
+    <text class="subtitle" wx:if="{{currentStudentName}}">{{currentStudentName}}</text>
+  </view>
+
+  <view class="chip-row" wx:if="{{role === 'parent' && students.length > 1}}">
+    <view
+      wx:for="{{students}}"
+      wx:key="id"
+      class="chip {{item.id === currentStudentId ? 'active' : ''}}"
+      data-id="{{item.id}}"
+      data-name="{{item.name}}"
+      bindtap="onSwitchStudent"
+    >{{item.name}}</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty-state">加载中...</view>
+
+  <view wx:elif="{{noStudents}}" class="empty-state">
+    还没有关联学生，请先在"账号与学生绑定"中添加学生
+  </view>
+
+  <block wx:else>
+    <view class="action-row">
+      <button wx:if="{{canEdit && !editing}}" size="mini" class="action-btn edit-btn" bindtap="onToggleEdit">✏️ 编辑</button>
+      <block wx:if="{{canEdit && editing}}">
+        <button size="mini" class="action-btn cancel-btn" bindtap="onToggleEdit">取消</button>
+        <button size="mini" class="action-btn save-btn" bindtap="onSave">保存</button>
+      </block>
+      <button size="mini" class="action-btn share-btn" bindtap="onShareSchedule">📤 一键共享</button>
+    </view>
+
+    <scroll-view scroll-x class="table-scroll">
+      <view class="schedule-table">
+        <view class="table-row header-row">
+          <view class="table-cell period-cell"></view>
+          <view wx:for="{{days}}" wx:key="*this" class="table-cell day-cell-h">{{item}}</view>
+        </view>
+        <view class="table-row" wx:for="{{grid}}" wx:for-item="row" wx:for-index="pIdx" wx:key="pIdx">
+          <view class="table-cell period-cell">{{pIdx + 1}}</view>
+          <view class="table-cell subject-cell" wx:for="{{row}}" wx:for-item="subj" wx:for-index="dIdx" wx:key="dIdx">
+            <input
+              wx:if="{{editing}}"
+              class="subject-input"
+              value="{{subj}}"
+              data-period="{{pIdx + 1}}"
+              data-day="{{dIdx + 1}}"
+              bindinput="onCellInput"
+              placeholder="—"
+            />
+            <text wx:else class="{{subj ? '' : 'placeholder'}}">{{subj || '—'}}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </block>
+
+  <canvas
+    type="2d"
+    id="scheduleShareCanvas"
+    class="share-canvas"
+    style="width:{{shareCanvasWidth}}px;height:{{shareCanvasHeight}}px;"
+  ></canvas>
+
+  <bottom-nav active="directory" role="{{role}}" />
+</view>

@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "课程表",
+  "usingComponents": {
+    "bottom-nav": "/components/bottom_nav/bottom_nav"
+  }
+}

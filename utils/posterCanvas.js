@@ -158,4 +158,100 @@ function drawSummaryPoster(ctx, width, height, data) {
   ctx.textAlign = 'left';
 }
 
-module.exports = { POSTER_WIDTH, computePosterHeight, drawSummaryPoster };
+// -------- 课程表 "一键共享" poster --------
+
+const SCHEDULE_WIDTH = 700;
+const S_PAD = 32;
+const S_TITLE_H = 80;
+const S_HEADER_H = 48;
+const S_ROW_H = 68;
+const S_COL0_W = 64;
+const S_FOOTER_H = 56;
+const S_HEADER_GAP = 8;
+const DAY_LABELS = ['周一', '周二', '周三', '周四', '周五'];
+
+function computeSchedulePosterHeight(periodCount) {
+  return S_PAD + S_TITLE_H + S_HEADER_H + S_HEADER_GAP + periodCount * S_ROW_H + S_FOOTER_H + S_PAD;
+}
+
+function _pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+// data: { studentName, grid } — grid[period-1][day-1] = subject string ('' = free period)
+function drawSchedulePoster(ctx, width, height, data) {
+  const { studentName, grid } = data;
+  const periodCount = grid.length;
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = '#F6F9F2';
+  ctx.fillRect(0, 0, width, height);
+
+  let y = S_PAD;
+  ctx.fillStyle = '#24302A';
+  ctx.font = 'bold 32px sans-serif';
+  ctx.fillText(truncateToWidth(ctx, `${studentName || ''}的课程表`, width - S_PAD * 2), S_PAD, y);
+
+  const today = new Date();
+  ctx.fillStyle = '#8B978C';
+  ctx.font = '20px sans-serif';
+  ctx.fillText(
+    `生成于 ${today.getFullYear()}-${_pad2(today.getMonth() + 1)}-${_pad2(today.getDate())}`,
+    S_PAD,
+    y + 42,
+  );
+  y += S_TITLE_H;
+
+  const tableX = S_PAD;
+  const tableW = width - S_PAD * 2;
+  const colW = (tableW - S_COL0_W) / DAY_LABELS.length;
+
+  ctx.fillStyle = '#1F8F82';
+  roundRect(ctx, tableX, y, tableW, S_HEADER_H, 12);
+  ctx.fill();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 22px sans-serif';
+  ctx.textAlign = 'center';
+  DAY_LABELS.forEach((d, i) => {
+    ctx.fillText(d, tableX + S_COL0_W + colW * i + colW / 2, y + S_HEADER_H / 2 - 11);
+  });
+  ctx.textAlign = 'left';
+  y += S_HEADER_H + S_HEADER_GAP;
+
+  grid.forEach((row, pIdx) => {
+    const rowY = y + pIdx * S_ROW_H;
+    const rowH = S_ROW_H - 4;
+    ctx.fillStyle = pIdx % 2 === 0 ? '#FFFFFF' : '#EEF4E9';
+    ctx.fillRect(tableX, rowY, tableW, rowH);
+
+    ctx.fillStyle = '#5B6A5F';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(pIdx + 1), tableX + S_COL0_W / 2, rowY + rowH / 2 - 11);
+
+    row.forEach((subject, dIdx) => {
+      const cx = tableX + S_COL0_W + colW * dIdx + colW / 2;
+      ctx.fillStyle = subject ? '#24302A' : '#C5D0BE';
+      ctx.font = '600 21px sans-serif';
+      ctx.fillText(truncateToWidth(ctx, subject || '—', colW - 12), cx, rowY + rowH / 2 - 11);
+    });
+    ctx.textAlign = 'left';
+  });
+
+  y += periodCount * S_ROW_H + 20;
+  ctx.fillStyle = '#8B978C';
+  ctx.font = '20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('课后助手 · 课程表', width / 2, y);
+  ctx.textAlign = 'left';
+}
+
+module.exports = {
+  POSTER_WIDTH,
+  computePosterHeight,
+  drawSummaryPoster,
+  SCHEDULE_WIDTH,
+  computeSchedulePosterHeight,
+  drawSchedulePoster,
+};

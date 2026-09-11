@@ -5,6 +5,7 @@
     "pages/student_home/student_home",
     "pages/pdf_upload_webview/pdf_upload_webview",
     "pages/account_link/account_link",
+    "pages/school_schedule/school_schedule",
     "pages/task_calendar/task_calendar",
     "pages/task_input/task_input",
     "pages/completion_check/completion_check",

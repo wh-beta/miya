@@ -20,6 +20,9 @@ Page({
   onFindSimilarQuestions() {
     wx.navigateTo({ url: '/pages/similar_questions/similar_questions' });
   },
+  onViewSchoolSchedule() {
+    wx.navigateTo({ url: `/pages/school_schedule/school_schedule?role=${this.data.role}` });
+  },
   onSetReminder() {
     // TODO: replace with a real task selected from the student's task list.
     const sampleTask = {

@@ -33,6 +33,13 @@
       </view>
       <text class="menu-arrow">›</text>
     </view>
+    <view class="menu-card" bindtap="onViewSchoolSchedule">
+      <view class="menu-text">
+        <text class="menu-title">课程表</text>
+        <text class="menu-desc">查看每周课程安排，一键共享</text>
+      </view>
+      <text class="menu-arrow">›</text>
+    </view>
   </view>
 
   <bottom-nav active="directory" role="{{role}}" />
