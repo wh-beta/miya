@@ -1,0 +1,204 @@
+<view class="page">
+  <text class="section-label">任务列表</text>
+  <view class="seg">
+    <view class="seg-btn {{view === 'date' ? 'active' : ''}}" data-view="date" bindtap="onSwitchView">日期</view>
+    <view class="seg-btn {{view === 'month' ? 'active' : ''}}" data-view="month" bindtap="onSwitchView">日历</view>
+    <view class="seg-btn {{view === 'subject' ? 'active' : ''}}" data-view="subject" bindtap="onSwitchView">科目</view>
+  </view>
+
+  <view wx:if="{{view === 'date'}}" class="pager" bindtouchstart="onTouchStart" bindtouchend="onTouchEnd">
+    <view class="pager-btn" bindtap="onPrevDay">‹</view>
+    <view class="pager-mid">
+      <text class="pager-date">{{dateLabel}}</text>
+      <view class="pager-sub">
+        <text>{{isToday ? '今天 · ' : ''}}{{dateItems.length}} 项任务</text>
+        <text wx:if="{{!isToday}}" class="today-chip" bindtap="onJumpToday">回到今天</text>
+      </view>
+    </view>
+    <view class="pager-btn" bindtap="onNextDay">›</view>
+  </view>
+
+  <view wx:if="{{view === 'month'}}" class="month-calendar">
+    <view class="month-nav">
+      <view class="pager-btn" bindtap="onPrevMonth">‹</view>
+      <text class="month-label">{{calendarMonthLabel}}</text>
+      <view class="pager-btn" bindtap="onNextMonth">›</view>
+      <text class="today-chip month-today-chip" bindtap="onJumpTodayMonth">今日</text>
+    </view>
+    <view class="weekday-row">
+      <text wx:for="{{weekdayLabels}}" wx:key="*this" class="weekday-cell">{{item}}</text>
+    </view>
+    <view wx:for="{{calendarWeeks}}" wx:key="index" wx:for-item="week" class="week-row">
+      <view
+        wx:for="{{week}}"
+        wx:for-item="cell"
+        wx:key="key"
+        class="day-cell {{!cell.inMonth ? 'out-month' : ''}} {{cell.isToday ? 'is-today' : ''}} {{cell.isSelected ? 'is-selected' : ''}}"
+        data-date="{{cell.date}}"
+        bindtap="onSelectCalendarDay"
+      >
+        <text class="day-num">{{cell.day}}</text>
+        <view wx:if="{{cell.hasTasks}}" class="day-dot"></view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{view === 'month'}}" class="month-selected-label">
+    <text>{{dateLabel}}</text>
+    <text class="month-selected-count">{{dateItems.length}} 项任务</text>
+  </view>
+
+  <view wx:if="{{view === 'subject'}}" class="chip-row">
+    <view
+      wx:for="{{subjectChips}}"
+      wx:key="*this"
+      class="chip {{item === '全部' ? 'all' : ''}} {{selectedSubject === item ? 'active' : ''}}"
+      data-subject="{{item}}"
+      bindtap="onSelectSubject"
+    >{{item}}</view>
+  </view>
+
+  <view wx:if="{{role === 'parent'}}" class="share-row">
+    <button size="mini" class="share-btn" bindtap="onShareSummary">📤 一键分享</button>
+  </view>
+
+  <canvas type="2d" id="shareCanvas" class="share-canvas" style="width:{{shareCanvasWidth}}px;height:{{shareCanvasHeight}}px;"></canvas>
+
+  <view class="task-list">
+    <block wx:if="{{view === 'date' || view === 'month'}}">
+      <view wx:for="{{dateItems}}" wx:key="key" class="task-card">
+        <view class="task-top">
+          <text class="task-title">{{item.title}}</text>
+          <view class="task-meta">
+            <text class="tag">{{item.subject}}</text>
+            <text wx:if="{{role === 'parent' && item.childName}}" class="child-tag">{{item.childName}}</text>
+            <text wx:if="{{item.metaRight}}" class="meta-text">{{item.metaRight}}</text>
+            <text wx:if="{{role === 'student' && item.urged && item.status !== 'done'}}" class="urge-pill">提醒完成</text>
+          </view>
+        </view>
+        <view class="task-bottom">
+          <button
+            size="mini"
+            class="status-btn status-{{item.status}}"
+            data-kind="{{item.kind}}"
+            data-id="{{item.id}}"
+            bindtap="onToggleStatus"
+          >{{item.statusLabel}}</button>
+          <view class="row-actions">
+            <button
+              wx:if="{{role === 'parent' && item.status === 'done' && item.completionImageUrl}}"
+              size="mini"
+              class="check-btn"
+              data-kind="{{item.kind}}"
+              data-id="{{item.id}}"
+              data-url="{{item.completionImageUrl}}"
+              bindtap="onCheckCompletionImage"
+            >检查</button>
+            <button wx:else size="mini" data-kind="{{item.kind}}" data-id="{{item.id}}" bindtap="onAddToCalendar">加入日历</button>
+            <button
+              wx:if="{{role === 'parent'}}"
+              size="mini"
+              class="{{item.urged ? 'urged-btn' : ''}}"
+              data-kind="{{item.kind}}"
+              data-id="{{item.id}}"
+              bindtap="onUrge"
+            >{{item.urged ? '已催办' : '催办'}}</button>
+            <button wx:if="{{role === 'parent'}}" size="mini" data-kind="{{item.kind}}" data-id="{{item.id}}" bindtap="onDelete">删除</button>
+          </view>
+        </view>
+      </view>
+      <text wx:if="{{dateItems.length === 0}}" class="empty-note">这里还没有任务</text>
+    </block>
+
+    <block wx:else>
+      <view wx:for="{{subjectItems}}" wx:key="key" class="task-card">
+        <view class="task-top">
+          <text class="task-title">{{item.title}}</text>
+          <view class="task-meta">
+            <text class="tag">{{item.subject}}</text>
+            <text wx:if="{{role === 'parent' && item.childName}}" class="child-tag">{{item.childName}}</text>
+            <text wx:if="{{item.metaRight}}" class="meta-text">{{item.metaRight}}</text>
+            <text wx:if="{{role === 'student' && item.urged && item.status !== 'done'}}" class="urge-pill">提醒完成</text>
+          </view>
+        </view>
+        <view class="task-bottom">
+          <button
+            size="mini"
+            class="status-btn status-{{item.status}}"
+            data-kind="{{item.kind}}"
+            data-id="{{item.id}}"
+            bindtap="onToggleStatus"
+          >{{item.statusLabel}}</button>
+          <view class="row-actions">
+            <button
+              wx:if="{{role === 'parent' && item.status === 'done' && item.completionImageUrl}}"
+              size="mini"
+              class="check-btn"
+              data-kind="{{item.kind}}"
+              data-id="{{item.id}}"
+              data-url="{{item.completionImageUrl}}"
+              bindtap="onCheckCompletionImage"
+            >检查</button>
+            <button wx:else size="mini" data-kind="{{item.kind}}" data-id="{{item.id}}" bindtap="onAddToCalendar">加入日历</button>
+            <button
+              wx:if="{{role === 'parent'}}"
+              size="mini"
+              class="{{item.urged ? 'urged-btn' : ''}}"
+              data-kind="{{item.kind}}"
+              data-id="{{item.id}}"
+              bindtap="onUrge"
+            >{{item.urged ? '已催办' : '催办'}}</button>
+            <button wx:if="{{role === 'parent'}}" size="mini" data-kind="{{item.kind}}" data-id="{{item.id}}" bindtap="onDelete">删除</button>
+          </view>
+        </view>
+      </view>
+      <text wx:if="{{subjectItems.length === 0}}" class="empty-note">这里还没有任务</text>
+    </block>
+  </view>
+
+  <text class="section-label">任务进度</text>
+  <view class="progress-card">
+    <view class="range-row">
+      <view class="range-btn {{range === 'today' ? 'active' : ''}}" data-range="today" bindtap="onSelectRange">今天</view>
+      <view class="range-btn {{range === 'week' ? 'active' : ''}}" data-range="week" bindtap="onSelectRange">本周</view>
+      <view class="range-btn {{range === 'month' ? 'active' : ''}}" data-range="month" bindtap="onSelectRange">本月</view>
+      <view class="range-btn {{range === 'custom' ? 'active' : ''}}" data-range="custom" bindtap="onSelectRange">自定义</view>
+    </view>
+
+    <view wx:if="{{range === 'custom'}}" class="custom-range-row">
+      <picker mode="date" value="{{customStart}}" bindchange="onCustomStartChange">
+        <view class="date-pick">{{customStart}}</view>
+      </picker>
+      <text class="range-sep">至</text>
+      <picker mode="date" value="{{customEnd}}" bindchange="onCustomEndChange">
+        <view class="date-pick">{{customEnd}}</view>
+      </picker>
+    </view>
+
+    <block wx:if="{{role === 'student'}}">
+      <view class="ratio-line">
+        <text class="ratio-num">{{progressStudent.completed}}</text>
+        <text class="ratio-den">/ {{progressStudent.total}}</text>
+      </view>
+      <view class="bar-track"><view class="bar-fill" style="width:{{progressStudent.pct}}%"></view></view>
+    </block>
+    <block wx:else>
+      <view wx:for="{{progressChildren}}" wx:key="id" class="child-row">
+        <view class="child-head">
+          <text class="child-name">{{item.name}}</text>
+          <text class="trend {{item.trendClass}}">{{item.trendText}}</text>
+        </view>
+        <view class="ratio-line">
+          <text class="ratio-num small">{{item.completed}}</text>
+          <text class="ratio-den">/ {{item.total}}</text>
+        </view>
+        <view class="bar-track"><view class="bar-fill" style="width:{{item.pct}}%"></view></view>
+      </view>
+      <view wx:if="{{progressChildren.length === 0}}" class="empty-note-link" bindtap="onGoToAccountLink">还没有关联学生，去"账号与绑定"添加一个吧 ›</view>
+    </block>
+  </view>
+
+  <button class="fab" bindtap="onOpenInput">+</button>
+  <bottom-nav active="" role="{{role}}" />
+  <fireworks id="fireworks" />
+</view>

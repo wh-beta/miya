@@ -1,6 +1,12 @@
 <view class="container">
-  <text class="title">课后助手</text>
-  <text class="subtitle">我是</text>
-  <button class="role-btn" bindtap="onParent">家长</button>
-  <button class="role-btn" bindtap="onStudent">学生</button>
+  <view class="brand">
+    <text class="title">课后助手</text>
+    <text class="tagline">让作业和课程一目了然</text>
+  </view>
+
+  <view class="role-list">
+    <text class="subtitle">我是</text>
+    <button class="role-btn" bindtap="onParent">家长</button>
+    <button class="role-btn" bindtap="onStudent">学生</button>
+  </view>
 </view>

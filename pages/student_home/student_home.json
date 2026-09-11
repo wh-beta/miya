@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "学生"
+  "navigationBarTitleText": "学生",
+  "usingComponents": {
+    "bottom-nav": "/components/bottom_nav/bottom_nav"
+  }
 }

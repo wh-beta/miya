@@ -1,0 +1,67 @@
+<view class="page">
+  <image class="completion-image" src="{{imageUrl}}" mode="widthFix" bindtap="onPreviewImage" />
+
+  <view wx:if="{{status === 'idle'}}" class="parse-bar">
+    <button size="mini" type="primary" bindtap="onParse">解析题目</button>
+    <text class="hint-text">从照片里提取印刷体题目，存入题库前你可以先挑一遍</text>
+  </view>
+
+  <view wx:if="{{status === 'parsing'}}" class="parse-bar">
+    <button size="mini" loading="{{true}}" disabled="{{true}}">解析中…</button>
+  </view>
+
+  <block wx:if="{{status === 'parsed' || status === 'confirming' || status === 'done'}}">
+    <text class="section-label">识别到 {{candidates.length}} 道题，已选 {{selectedCount}} 道</text>
+    <view
+      wx:for="{{candidates}}"
+      wx:key="index"
+      class="candidate-card {{item.selected ? 'selected' : ''}}"
+      data-idx="{{index}}"
+      bindtap="onToggleSelect"
+    >
+      <checkbox class="candidate-checkbox" checked="{{item.selected}}" />
+      <view class="candidate-main">
+        <text class="candidate-content">{{item.content}}</text>
+        <view wx:if="{{item.duplicate}}" class="dup-warning">
+          <text class="dup-warning-title">⚠ 题库中已有相似度 {{item.duplicateScorePercent}}% 的题目</text>
+          <text class="dup-warning-preview">{{item.duplicate.content}}</text>
+        </view>
+
+        <view class="candidate-actions">
+          <view
+            class="wrong-toggle {{item.wrong ? 'active' : ''}}"
+            data-idx="{{index}}"
+            catchtap="onToggleWrong"
+          >✗ 做错了</view>
+          <view
+            class="similar-btn {{item.wrong ? 'suggested' : ''}}"
+            data-idx="{{index}}"
+            catchtap="onFindSimilar"
+          >{{item.similarLoading ? '查找中…' : '🔍 找相似题'}}</view>
+        </view>
+        <text wx:if="{{item.wrong && !item.similarResults}}" class="wrong-hint">已标记做错，建议找几道相似题练习</text>
+
+        <view wx:if="{{item.similarResults}}" class="similar-results">
+          <text wx:if="{{item.similarResults.length === 0}}" class="empty-note">题库里暂时没有找到相似题</text>
+          <view wx:for="{{item.similarResults}}" wx:for-item="sim" wx:key="id" class="similar-card">
+            <text class="similar-content">{{sim.content}}</text>
+            <view class="meta-row">
+              <text wx:if="{{sim.complexity_score}}" class="meta-chip">难度 {{sim.complexity_score}}</text>
+              <text class="meta-chip score">相似度 {{sim.scorePercent}}%</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="save-bar">
+      <button
+        type="primary"
+        loading="{{status === 'confirming'}}"
+        disabled="{{selectedCount === 0 || status === 'confirming' || status === 'done'}}"
+        bindtap="onConfirm"
+      >{{status === 'done' ? '已提交' : ('导入选中的 ' + selectedCount + ' 道题')}}</button>
+      <text class="hint-text">导入后进入后台审核队列，审核通过才会出现在题库检索里</text>
+    </view>
+  </block>
+</view>

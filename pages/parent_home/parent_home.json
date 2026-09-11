@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "家长"
+  "navigationBarTitleText": "家长",
+  "usingComponents": {
+    "bottom-nav": "/components/bottom_nav/bottom_nav"
+  }
 }

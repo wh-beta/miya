@@ -24,18 +24,8 @@ function createClass(session, ownerRole) {
         note: session.note || null,
         owner_role: ownerRole,
         child_name: session.child_name || null,
+        student_user_id: session.student_user_id || null,
       },
-      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error(res.data.detail))),
-      fail: reject,
-    });
-  });
-}
-
-function listChildren() {
-  return new Promise((resolve, reject) => {
-    wx.request({
-      url: `${API_BASE_URL}/children`,
-      method: 'GET',
       success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error(res.data.detail))),
       fail: reject,
     });
@@ -79,4 +69,101 @@ function uploadScheduleImage(filePath) {
   });
 }
 
-module.exports = { listClasses, createClass, deleteClass, uploadScheduleImage, listChildren };
+function updateClassStatus(classId, status) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/classes/${classId}`,
+      method: 'PATCH',
+      data: { status },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error(res.data.detail))),
+      fail: reject,
+    });
+  });
+}
+
+function urgeClass(classId) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/classes/${classId}/urge`,
+      method: 'POST',
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error(res.data.detail))),
+      fail: reject,
+    });
+  });
+}
+
+// Optional proof-of-completion photo, attached after the student flips a
+// class session to "done" — see task_calendar.js's promptCompletionPhoto.
+function uploadClassCompletionImage(classId, filePath) {
+  return new Promise((resolve, reject) => {
+    wx.uploadFile({
+      url: `${API_BASE_URL}/classes/${classId}/completion_image`,
+      filePath,
+      name: 'file',
+      success: (res) => {
+        try {
+          const body = JSON.parse(res.data);
+          if (res.statusCode >= 400) {
+            reject(new Error(body.detail || 'Upload failed'));
+          } else {
+            resolve(body);
+          }
+        } catch (err) {
+          reject(err);
+        }
+      },
+      fail: reject,
+    });
+  });
+}
+
+// "检查" flow — see tasks.js's extractTaskCompletionQuestions/
+// confirmTaskCompletionQuestions for the two-step rationale.
+function extractClassCompletionQuestions(classId) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/classes/${classId}/completion_image/extract_preview`,
+      method: 'POST',
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error(res.data.detail))),
+      fail: reject,
+    });
+  });
+}
+
+function confirmClassCompletionQuestions(classId, imagePath, selectedQuestions) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/classes/${classId}/completion_image/extract_confirm`,
+      method: 'POST',
+      data: { image_path: imagePath, selected_questions: selectedQuestions },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error(res.data.detail))),
+      fail: reject,
+    });
+  });
+}
+
+// See tasks.js's findSimilarForTaskCandidate for the markWrong rationale.
+function findSimilarForClassCandidate(classId, content, markWrong) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/classes/${classId}/completion_image/candidates/similar`,
+      method: 'POST',
+      data: { content, mark_wrong: !!markWrong },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error(res.data.detail))),
+      fail: reject,
+    });
+  });
+}
+
+module.exports = {
+  listClasses,
+  createClass,
+  deleteClass,
+  uploadScheduleImage,
+  updateClassStatus,
+  urgeClass,
+  uploadClassCompletionImage,
+  extractClassCompletionQuestions,
+  confirmClassCompletionQuestions,
+  findSimilarForClassCandidate,
+};

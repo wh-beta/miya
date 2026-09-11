@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "待办",
+  "usingComponents": {
+    "bottom-nav": "/components/bottom_nav/bottom_nav",
+    "fireworks": "/components/fireworks/fireworks"
+  }
+}

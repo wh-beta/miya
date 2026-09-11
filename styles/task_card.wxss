@@ -1,0 +1,129 @@
+/* Shared by task_calendar and pages/todo — the task-card row markup is
+   identical between them (same normalizeTask/normalizeClass shape from
+   utils/taskItems.js), so keep the styling in one place too. */
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.task-card {
+  background: #fff;
+  border: 1rpx solid #DCE6D6;
+  border-radius: 24rpx;
+  padding: 22rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.task-title {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 8rpx;
+}
+
+.tag {
+  font-size: 20rpx;
+  font-weight: 700;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+  background: #E3ECFB;
+  color: #2B5FA8;
+}
+
+.child-tag {
+  font-size: 20rpx;
+  color: #5B6A5F;
+  background: #EEF4E9;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  font-weight: 600;
+}
+
+.meta-text {
+  font-size: 22rpx;
+  color: #8B978C;
+}
+
+.urge-pill {
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #D8503C;
+  background: #FCE4DF;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+}
+
+.task-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-btn {
+  font-size: 22rpx;
+  font-weight: 700;
+  margin: 0;
+}
+
+.status-assigned {
+  background: #EEF2EA;
+  color: #8E9C90;
+}
+
+.status-in_progress {
+  background: #FBEBD4;
+  color: #C97F1F;
+}
+
+.status-done {
+  background: #E1F3E6;
+  color: #2F9A63;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8rpx;
+}
+
+.row-actions button {
+  margin: 0;
+  font-size: 20rpx;
+}
+
+.urged-btn {
+  background: #FCE4DF !important;
+  color: #D8503C !important;
+}
+
+.check-btn {
+  background: #E3ECFB !important;
+  color: #2B5FA8 !important;
+}
+
+.empty-note {
+  text-align: center;
+  color: #8B978C;
+  font-size: 22rpx;
+  padding: 40rpx 0;
+  border: 1rpx dashed #DCE6D6;
+  border-radius: 20rpx;
+}
+
+.empty-note-link {
+  color: #146E64;
+  background: #DCF0EA;
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 16rpx 20rpx;
+  border-radius: 16rpx;
+}

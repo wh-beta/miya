@@ -1,15 +1,24 @@
 const { setTaskReminder } = require('../../utils/reminder.js');
-const {
-  chooseAndUploadImage,
-  startVoiceRecording,
-  stopVoiceRecordingAndUpload,
-} = require('../../utils/ingest.js');
-const { createTask } = require('../../utils/tasks.js');
+const { getMyProfile } = require('../../utils/auth.js');
 
 Page({
-  data: { isRecording: false, draftTask: null },
-  onViewTimetable() {
-    wx.navigateTo({ url: '/pages/timetable/timetable?role=parent' });
+  data: { role: 'parent', greeting: '你好，家长' },
+  onLoad(options) {
+    this.setData({ role: options.role || 'parent' });
+  },
+  onShow() {
+    getMyProfile()
+      .then((p) => this.setData({ greeting: `你好，${p.name || '家长'}` }))
+      .catch(() => {});
+  },
+  onViewTaskCalendar() {
+    wx.navigateTo({ url: `/pages/task_calendar/task_calendar?role=${this.data.role}` });
+  },
+  onManageAccount() {
+    wx.navigateTo({ url: `/pages/account_link/account_link?role=${this.data.role}` });
+  },
+  onFindSimilarQuestions() {
+    wx.navigateTo({ url: '/pages/similar_questions/similar_questions' });
   },
   onSetReminder() {
     // TODO: replace with a real task selected from the parent's task list.
@@ -27,37 +36,6 @@ Page({
         wx.showModal({ title: 'Could not add to calendar', content: detail, showCancel: false });
       }
     });
-  },
-  onScanImage() {
-    chooseAndUploadImage()
-      .then(({ draft_task }) => this.setData({ draftTask: draft_task }))
-      .catch((err) => wx.showToast({ title: err.message || 'Scan failed', icon: 'none' }));
-  },
-  onUploadPdf() {
-    wx.navigateTo({ url: '/pages/pdf_upload_webview/pdf_upload_webview' });
-  },
-  onToggleVoice() {
-    if (this.data.isRecording) {
-      this.setData({ isRecording: false });
-      stopVoiceRecordingAndUpload()
-        .then(({ draft_task }) => this.setData({ draftTask: draft_task }))
-        .catch((err) => wx.showToast({ title: err.message || 'Transcription failed', icon: 'none' }));
-    } else {
-      this.setData({ isRecording: true });
-      startVoiceRecording().catch((err) => {
-        this.setData({ isRecording: false });
-        wx.showToast({ title: err.message || 'Could not start recording', icon: 'none' });
-      });
-    }
-  },
-  onSaveDraftTask() {
-    createTask(this.data.draftTask, 'parent')
-      .then((task) => {
-        this.setData({ draftTask: null });
-        wx.showToast({ title: 'Task saved' });
-        return setTaskReminder(task).catch(() => {});
-      })
-      .catch((err) => wx.showToast({ title: err.message || 'Save failed', icon: 'none' }));
   },
   onShareAppMessage() {
     return {

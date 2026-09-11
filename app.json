@@ -3,8 +3,17 @@
     "pages/login/login",
     "pages/parent_home/parent_home",
     "pages/student_home/student_home",
-    "pages/timetable/timetable",
-    "pages/pdf_upload_webview/pdf_upload_webview"
+    "pages/pdf_upload_webview/pdf_upload_webview",
+    "pages/account_link/account_link",
+    "pages/task_calendar/task_calendar",
+    "pages/task_input/task_input",
+    "pages/completion_check/completion_check",
+    "pages/similar_questions/similar_questions",
+    "pages/similar_search_pdf_webview/similar_search_pdf_webview",
+    "pages/todo/todo",
+    "pages/growth/growth",
+    "pages/relations/relations",
+    "pages/urging/urging"
   ],
   "window": {
     "navigationBarTitleText": "课后助手"
@@ -17,5 +26,13 @@
       "desc": "用于录制语音以自动创建作业提醒"
     }
   },
+  "supportedMaterials": [
+    {
+      "materialType": "image/*",
+      "name": "${nickname}识别作业",
+      "desc": "自动识别图片中的作业并创建任务",
+      "path": "pages/task_input/task_input"
+    }
+  ],
   "sitemapLocation": "sitemap.json"
 }

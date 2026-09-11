@@ -1,0 +1,40 @@
+<view class="page">
+  <view class="intro">
+    <text class="intro-title">拍一道题，找同类练习</text>
+    <text class="intro-desc">从照片或 PDF 里识别题目，在题库里查找知识点相同、难度相近的相似题——这份文件本身不会被存起来。</text>
+  </view>
+
+  <view class="quick-actions">
+    <button size="mini" type="primary" loading="{{status === 'searching'}}" disabled="{{status === 'searching'}}" bindtap="onChooseImage">拍照 / 相册选图</button>
+    <button size="mini" disabled="{{status === 'searching'}}" bindtap="onChoosePdf">上传 PDF</button>
+  </view>
+
+  <block wx:if="{{status === 'done'}}">
+    <block wx:if="{{results.length === 0}}">
+      <text class="empty-note">没有识别到印刷体题目，换一张更清晰的照片试试</text>
+    </block>
+
+    <view wx:for="{{results}}" wx:key="index" class="question-group">
+      <view class="source-card">
+        <text class="source-label">识别到的题目</text>
+        <text class="source-content">{{item.content}}</text>
+        <view class="meta-row">
+          <text wx:if="{{item.complexity_score}}" class="meta-chip">难度 {{item.complexity_score}}</text>
+          <text wx:for="{{item.knowledge_points}}" wx:for-item="kp" wx:key="point_name" class="meta-chip kp">{{kp.point_name}}</text>
+        </view>
+      </view>
+
+      <block wx:if="{{item.similar_questions.length > 0}}">
+        <text class="section-label">题库里找到 {{item.similar_questions.length}} 道相似题</text>
+        <view wx:for="{{item.similar_questions}}" wx:for-item="sim" wx:key="id" class="similar-card">
+          <text class="similar-content">{{sim.content}}</text>
+          <view class="meta-row">
+            <text wx:if="{{sim.complexity_score}}" class="meta-chip">难度 {{sim.complexity_score}}</text>
+            <text class="meta-chip score">相似度 {{sim.scorePercent}}%</text>
+          </view>
+        </view>
+      </block>
+      <text wx:else class="empty-note">题库里暂时没有找到知识点/难度都相近的题目</text>
+    </view>
+  </block>
+</view>

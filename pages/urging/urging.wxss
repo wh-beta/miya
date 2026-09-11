@@ -1,0 +1,16 @@
+@import "../../styles/task_card.wxss";
+
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: #F6F9F2;
+  padding: 32rpx 24rpx 140rpx;
+}
+
+.page-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 800;
+  color: #24302A;
+  margin-bottom: 24rpx;
+}

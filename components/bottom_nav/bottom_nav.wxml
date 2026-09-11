@@ -1,0 +1,18 @@
+<view class="bottom-nav">
+  <view class="nav-item {{active === 'directory' ? 'active' : ''}}" bindtap="onTapDirectory">
+    <text class="nav-icon">☰</text>
+    <text class="nav-label">目录</text>
+  </view>
+  <view class="nav-item {{active === 'todo' ? 'active' : ''}}" bindtap="onTapTodo">
+    <text class="nav-icon">✓</text>
+    <text class="nav-label">待办</text>
+  </view>
+  <view class="nav-item {{active === 'growth' ? 'active' : ''}}" bindtap="onTapGrowth">
+    <text class="nav-icon">🌱</text>
+    <text class="nav-label">成长</text>
+  </view>
+  <view class="nav-item {{active === 'mine' || active === 'mine-relations' || active === 'mine-urging' ? 'active' : ''}}" bindtap="onTapMine">
+    <text class="nav-icon">👤</text>
+    <text class="nav-label">我的</text>
+  </view>
+</view>

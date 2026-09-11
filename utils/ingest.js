@@ -25,20 +25,6 @@ function uploadFile(filePath, path) {
   });
 }
 
-function chooseAndUploadImage() {
-  return new Promise((resolve, reject) => {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        uploadFile(res.tempFiles[0].tempFilePath, '/ingest/image').then(resolve, reject);
-      },
-      fail: reject,
-    });
-  });
-}
-
 let recorderManager = null;
 
 function ensureRecordAuth() {
@@ -113,7 +99,6 @@ function stopVoiceRecordingAndUpload() {
 }
 
 module.exports = {
-  chooseAndUploadImage,
   startVoiceRecording,
   stopVoiceRecordingAndUpload,
 };

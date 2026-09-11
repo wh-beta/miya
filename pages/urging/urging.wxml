@@ -1,0 +1,47 @@
+<view class="page">
+  <text class="page-title">我的催办</text>
+
+  <view class="task-list">
+    <view wx:for="{{items}}" wx:key="key" class="task-card">
+      <view class="task-top">
+        <text class="task-title">{{item.title}}</text>
+        <view class="task-meta">
+          <text class="tag">{{item.subject}}</text>
+          <text wx:if="{{role === 'parent' && item.childName}}" class="child-tag">{{item.childName}}</text>
+          <text wx:if="{{item.metaRight}}" class="meta-text">{{item.metaRight}}</text>
+        </view>
+      </view>
+      <view class="task-bottom">
+        <button
+          size="mini"
+          class="status-btn status-{{item.status}}"
+          data-kind="{{item.kind}}"
+          data-id="{{item.id}}"
+          bindtap="onToggleStatus"
+        >{{item.statusLabel}}</button>
+        <view class="row-actions">
+          <button
+            wx:if="{{role === 'parent' && item.status === 'done' && item.completionImageUrl}}"
+            size="mini"
+            class="check-btn"
+            data-url="{{item.completionImageUrl}}"
+            bindtap="onCheckCompletionImage"
+          >检查</button>
+          <button wx:else size="mini" data-kind="{{item.kind}}" data-id="{{item.id}}" bindtap="onAddToCalendar">加入日历</button>
+          <button
+            wx:if="{{role === 'parent'}}"
+            size="mini"
+            class="urged-btn"
+            data-kind="{{item.kind}}"
+            data-id="{{item.id}}"
+            bindtap="onUrge"
+          >已催办</button>
+          <button wx:if="{{role === 'parent'}}" size="mini" data-kind="{{item.kind}}" data-id="{{item.id}}" bindtap="onDelete">删除</button>
+        </view>
+      </view>
+    </view>
+    <text wx:if="{{items.length === 0}}" class="empty-note">目前没有催办中的任务</text>
+  </view>
+
+  <bottom-nav active="mine-urging" role="{{role}}" />
+</view>

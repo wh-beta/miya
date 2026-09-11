@@ -13,20 +13,30 @@
     },
     "useCompilerPlugins": false,
     "minifyWXML": true,
-    "lazyCodeLoading": "requiredComponents"
+    "lazyCodeLoading": "requiredComponents",
+    "compileWorklet": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "minifyWXSS": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
   },
   "compileType": "miniprogram",
   "simulatorPluginLibVersion": {},
   "packOptions": {
     "ignore": [
       {
-        "type": "folder",
-        "value": "/minitest"
+        "value": "/minitest",
+        "type": "folder"
       }
     ],
     "include": []
   },
   "appid": "wx1a33161bd2a1d8c9",
   "editorSetting": {},
-  "testRoot": "minitest/"
+  "testRoot": "minitest/",
+  "libVersion": "3.16.2"
 }

@@ -1,0 +1,4 @@
+<view wx:if="{{visible}}" class="fw-overlay" catchtouchmove="onNoop" bindtap="onTapDismiss">
+  <canvas type="2d" id="fwCanvas" class="fw-canvas"></canvas>
+  <view class="fw-message">🎉 今天的任务全部完成啦！</view>
+</view>

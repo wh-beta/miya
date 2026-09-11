@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "我的催办",
+  "usingComponents": {
+    "bottom-nav": "/components/bottom_nav/bottom_nav"
+  }
+}

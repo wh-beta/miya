@@ -6,9 +6,37 @@ function getOpenid() {
   return _openid;
 }
 
+// 任务日历 is home for a known user — parent_home/student_home (the old
+// landing page) is now a secondary "目录" screen reached via the bottom nav.
 function _navigateTo(role) {
-  const page = role === 'parent' ? '/pages/parent_home/parent_home' : '/pages/student_home/student_home';
-  wx.reLaunch({ url: page });
+  wx.reLaunch({ url: `/pages/task_calendar/task_calendar?role=${role}` });
+}
+
+// A user with no name yet (first login) is sent to account_link to set one
+// before reaching home — that's also where a student first sees their
+// connect_code and a parent first gets to link one. Once a name is on file,
+// login skips straight to home like before.
+function _checkNameAndRoute(role) {
+  return new Promise((resolve) => {
+    wx.request({
+      url: `${API_BASE_URL}/users/me`,
+      method: 'GET',
+      data: { openid: _openid },
+      success: (r) => {
+        if (r.statusCode < 400 && r.data && r.data.name) {
+          _navigateTo(role);
+        } else {
+          wx.reLaunch({ url: `/pages/account_link/account_link?role=${role}&setup=1` });
+        }
+        resolve(_openid);
+      },
+      // Can't confirm profile state — fall back to home rather than blocking login.
+      fail: () => {
+        _navigateTo(role);
+        resolve(_openid);
+      },
+    });
+  });
 }
 
 function loginAndRoute(role) {
@@ -33,8 +61,7 @@ function loginAndRoute(role) {
               return;
             }
             _openid = r.data.openid;
-            _navigateTo(role);
-            resolve(_openid);
+            _checkNameAndRoute(role).then(resolve, reject);
           },
           fail: (err) => reject(new Error(err.errMsg || '网络错误')),
         });
@@ -44,4 +71,116 @@ function loginAndRoute(role) {
   });
 }
 
-module.exports = { loginAndRoute, getOpenid };
+function getMyProfile() {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/users/me`,
+      method: 'GET',
+      data: { openid: getOpenid() },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '获取信息失败'))),
+      fail: reject,
+    });
+  });
+}
+
+function setMyName(name) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/users/me`,
+      method: 'PATCH',
+      data: { openid: getOpenid(), name },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '保存失败'))),
+      fail: reject,
+    });
+  });
+}
+
+function listLinkedStudents() {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/users/me/students`,
+      method: 'GET',
+      data: { openid: getOpenid() },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '获取失败'))),
+      fail: reject,
+    });
+  });
+}
+
+function listLinkedParents() {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/users/me/parents`,
+      method: 'GET',
+      data: { openid: getOpenid() },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '获取失败'))),
+      fail: reject,
+    });
+  });
+}
+
+// For a child with no WeChat account of their own (e.g. too young for a
+// phone) — creates a real student record by name alone, linked exactly
+// like any other student, so the rest of the app never has to special-case it.
+function addVirtualStudent(name) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/users/me/virtual_students`,
+      method: 'POST',
+      data: { parent_openid: getOpenid(), name },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '添加失败'))),
+      fail: reject,
+    });
+  });
+}
+
+function linkStudent(code) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/links`,
+      method: 'POST',
+      data: { parent_openid: getOpenid(), code },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '绑定失败'))),
+      fail: reject,
+    });
+  });
+}
+
+function unlinkStudent(studentId) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/links/${studentId}?parent_openid=${encodeURIComponent(getOpenid())}`,
+      method: 'DELETE',
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '解除失败'))),
+      fail: reject,
+    });
+  });
+}
+
+// The reverse of linkStudent: a student consuming a parent's own
+// connect_code (e.g. from a card the parent shared into a family group
+// chat), instead of the parent typing the student's code.
+function acceptInvite(inviteCode) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/links/accept_invite`,
+      method: 'POST',
+      data: { student_openid: getOpenid(), invite_code: inviteCode },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '绑定失败'))),
+      fail: reject,
+    });
+  });
+}
+
+module.exports = {
+  loginAndRoute,
+  getOpenid,
+  getMyProfile,
+  setMyName,
+  listLinkedStudents,
+  listLinkedParents,
+  linkStudent,
+  unlinkStudent,
+  acceptInvite,
+  addVirtualStudent,
+};

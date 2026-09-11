@@ -1,0 +1,15 @@
+<view class="page">
+  <text class="page-title">关系列表</text>
+
+  <view class="relation-list">
+    <view wx:for="{{items}}" wx:key="id" class="relation-row">
+      <text>{{item.name}}<text wx:if="{{item.is_virtual}}" class="virtual-tag">无微信账号</text></text>
+      <button wx:if="{{role === 'parent'}}" size="mini" class="unlink-btn" data-id="{{item.id}}" bindtap="onRemoveStudent">解除</button>
+    </view>
+    <text wx:if="{{items.length === 0}}" class="empty">{{role === 'parent' ? '还没有关联任何学生' : '还没有关联任何家长'}}</text>
+  </view>
+
+  <view class="manage-link" bindtap="onGoToAccountLink">前往"账号与绑定"添加新连接 ›</view>
+
+  <bottom-nav active="mine-relations" role="{{role}}" />
+</view>

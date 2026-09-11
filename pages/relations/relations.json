@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "关系列表",
+  "usingComponents": {
+    "bottom-nav": "/components/bottom_nav/bottom_nav"
+  }
+}

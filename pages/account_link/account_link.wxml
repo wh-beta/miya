@@ -1,0 +1,58 @@
+<view class="container">
+  <text class="section-label">你的姓名</text>
+  <view class="name-row">
+    <input class="field-input" type="nickname" value="{{name}}" bindinput="onNameInput" placeholder="点击填入微信昵称，或手动输入" />
+    <button size="mini" type="primary" bindtap="onSaveName">保存</button>
+  </view>
+  <text class="field-hint">点击输入框，键盘上方会出现"使用微信昵称"，点一下即可自动填入</text>
+
+  <view wx:if="{{connectCode}}" class="code-card">
+    <text class="section-label">{{role === 'student' ? '你的连接码' : '你的邀请码'}}</text>
+    <text class="code-text">{{connectCode}}</text>
+    <text class="hint">{{role === 'student' ? '把这个码告诉家长，用于关联你的任务' : '把这个码告诉学生，或直接分享邀请'}}</text>
+    <view class="code-actions">
+      <button size="mini" bindtap="onCopyCode">复制</button>
+      <button wx:if="{{role === 'parent'}}" size="mini" type="primary" open-type="share">邀请学生加入（可发到群聊）</button>
+    </view>
+  </view>
+
+  <block wx:if="{{role === 'parent'}}">
+    <text class="section-label">已关联学生</text>
+    <view wx:for="{{students}}" wx:key="id" class="student-row">
+      <view class="student-row-main">
+        <text>{{item.name}}<text wx:if="{{item.is_virtual}}" class="virtual-tag">无微信账号</text></text>
+        <button size="mini" class="unlink-btn" data-id="{{item.id}}" bindtap="onRemoveStudent">解除</button>
+      </view>
+      <view wx:if="{{item.connect_code}}" class="student-code-row">
+        <text class="student-code-text">连接码 {{item.connect_code}}</text>
+        <text class="student-code-copy" data-code="{{item.connect_code}}" bindtap="onCopyStudentCode">复制</text>
+      </view>
+    </view>
+    <text wx:if="{{students.length === 0}}" class="empty">还没有关联任何学生</text>
+    <text wx:if="{{students.length > 0}}" class="field-hint">把学生的连接码分享给另一位家长，对方在"添加学生"里输入即可共同关联同一个学生</text>
+
+    <text class="section-label">添加学生</text>
+    <view class="name-row">
+      <input class="field-input" value="{{virtualNameInput}}" bindinput="onVirtualNameInput" placeholder="直接填写学生姓名（无需学生有微信账号）" />
+      <button size="mini" type="primary" bindtap="onAddVirtualStudent">添加</button>
+    </view>
+    <text class="or-divider">或</text>
+    <view class="name-row">
+      <input class="field-input" value="{{codeInput}}" bindinput="onCodeInput" placeholder="输入学生的连接码" />
+      <button size="mini" type="primary" bindtap="onConfirmLink">绑定</button>
+    </view>
+  </block>
+
+  <button class="go-home-btn" bindtap="onGoHome">前往首页</button>
+
+  <view wx:if="{{showPrivacyModal}}" class="privacy-overlay">
+    <view class="privacy-box">
+      <text class="privacy-title">隐私授权提示</text>
+      <text class="privacy-text">为了在自动填入您的微信昵称，需要您先阅读并同意<text class="privacy-link" bindtap="onOpenPrivacyContract">《隐私保护指引》</text>。不同意也可以手动输入姓名。</text>
+      <view class="privacy-actions">
+        <button size="mini" bindtap="onDisagreePrivacy">暂不同意</button>
+        <button size="mini" type="primary" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="onAgreePrivacy">同意</button>
+      </view>
+    </view>
+  </view>
+</view>

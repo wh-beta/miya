@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "成长记录",
+  "usingComponents": {
+    "bottom-nav": "/components/bottom_nav/bottom_nav"
+  }
+}

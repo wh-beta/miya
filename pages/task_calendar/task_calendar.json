@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "任务日历",
+  "usingComponents": {
+    "bottom-nav": "/components/bottom_nav/bottom_nav",
+    "fireworks": "/components/fireworks/fireworks"
+  }
+}

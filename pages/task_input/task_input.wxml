@@ -1,0 +1,114 @@
+<view class="page">
+  <text class="section-label">类型</text>
+  <view class="seg">
+    <view class="seg-btn {{itemType === 'task' ? 'active' : ''}}" data-type="task" bindtap="onSwitchType">作业</view>
+    <view class="seg-btn {{itemType === 'class' ? 'active' : ''}}" data-type="class" bindtap="onSwitchType">课程</view>
+  </view>
+
+  <text class="section-label">学生{{role === 'parent' ? '（必选）' : ''}}</text>
+  <view wx:if="{{role === 'student'}}" class="pill-select">
+    <view class="pill active disabled">{{selectedChildName}}</view>
+  </view>
+  <view wx:else class="pill-select">
+    <view
+      wx:for="{{linkedStudents}}"
+      wx:key="id"
+      class="pill {{selectedChildId === item.id ? 'active' : ''}}"
+      data-id="{{item.id}}"
+      data-name="{{item.name}}"
+      bindtap="onSelectChild"
+    >{{item.name}}</view>
+    <view wx:if="{{linkedStudents.length === 0}}" class="empty-note-link" bindtap="onGoToAccountLink">还没有关联学生，去"账号与绑定"添加一个吧 ›</view>
+  </view>
+
+  <text class="section-label">科目（可选）</text>
+  <view class="pill-select">
+    <view
+      wx:for="{{subjects}}"
+      wx:key="*this"
+      class="pill {{selectedSubject === item ? 'active' : ''}}"
+      data-subject="{{item}}"
+      bindtap="onSelectSubject"
+    >{{item}}</view>
+  </view>
+  <input class="field-input" placeholder="或输入自定义科目" bindinput="onCustomSubjectInput" />
+
+  <block wx:if="{{itemType === 'task'}}">
+    <text class="section-label">文字输入</text>
+    <textarea
+      class="textarea"
+      placeholder="{{mainTextPlaceholder}}"
+      value="{{mainText}}"
+      bindinput="onMainTextInput"
+      maxlength="-1"
+    />
+    <button size="mini" type="primary" bindtap="onParseText">添加</button>
+  </block>
+
+  <text class="section-label">{{itemType === 'task' ? '或使用其它方式' : '课程建议用拍照识别课表，或手动填写时间'}}</text>
+  <view class="quick-actions">
+    <button size="mini" loading="{{uploadingImage || uploadingSchedule}}" bindtap="onQuickImage">{{itemType === 'class' ? '拍照识别课表' : '拍照/图像'}}</button>
+    <button wx:if="{{itemType === 'task'}}" size="mini" bindtap="onQuickPdf">PDF上传</button>
+    <button wx:if="{{itemType === 'task'}}" size="mini" bindtap="onQuickVoice">{{isRecording ? '停止录音' : '语音'}}</button>
+    <button size="mini" bindtap="onQuickManual">类日历输入</button>
+  </view>
+
+  <view wx:if="{{showManualForm}}" class="inline-form">
+    <block wx:if="{{itemType === 'task'}}">
+      <input class="field-input" placeholder="任务内容，例如：数学练习册 P20" value="{{manualContent}}" bindinput="onManualContentInput" />
+    </block>
+    <block wx:else>
+      <input class="field-input" placeholder="备注（可选，不填则以科目命名）" value="{{manualContent}}" bindinput="onManualContentInput" />
+    </block>
+    <view class="pill-select">
+      <view
+        wx:for="{{[0, 1, 2]}}"
+        wx:key="*this"
+        class="pill {{manualDateOffset === item ? 'active' : ''}}"
+        data-offset="{{item}}"
+        bindtap="onManualDateOffset"
+      >{{item === 0 ? '今天' : (item === 1 ? '明天' : '后天')}}</view>
+    </view>
+    <view wx:if="{{itemType === 'class'}}" class="pill-select">
+      <view
+        wx:for="{{timeRanges}}"
+        wx:key="*this"
+        class="pill {{manualTimeRange === item ? 'active' : ''}}"
+        data-time="{{item}}"
+        bindtap="onManualTimeRange"
+      >{{item}}</view>
+    </view>
+    <button size="mini" type="primary" bindtap="onManualAdd">加入待保存列表</button>
+  </view>
+
+  <block wx:if="{{drafts.length > 0}}">
+    <text class="section-label">待保存列表</text>
+    <view wx:for="{{drafts}}" wx:key="key" class="draft-card">
+      <view class="draft-title-row">
+        <input class="draft-title-input" data-idx="{{index}}" value="{{item.title}}" bindinput="onDraftTitleInput" placeholder="任务内容" />
+        <text class="remove-draft" data-idx="{{index}}" bindtap="onRemoveDraft">×</text>
+      </view>
+      <view class="draft-field-row">
+        <text
+          wx:for="{{subjects}}"
+          wx:for-item="s"
+          wx:key="*this"
+          class="field-chip {{item.subject === s ? 'chip-active' : ''}}"
+          data-idx="{{index}}"
+          data-subject="{{s}}"
+          bindtap="onDraftSubjectPick"
+        >{{s}}</text>
+      </view>
+      <view class="draft-field-row">
+        <picker mode="date" value="{{item.date || todayStr}}" data-idx="{{index}}" bindchange="onDraftDateChange">
+          <text class="field-chip date {{item.date ? '' : 'unset'}}">{{item.date ? (item.date + (item.itemType === 'class' ? '' : ' 截止')) : '请选择日期 ›'}}</text>
+        </picker>
+        <text wx:if="{{item.itemType === 'class'}}" class="field-chip date">{{item.time}}</text>
+      </view>
+    </view>
+  </block>
+
+  <view class="save-bar">
+    <button type="primary" loading="{{saving}}" disabled="{{drafts.length === 0}}" bindtap="onSaveAll">保存全部</button>
+  </view>
+</view>

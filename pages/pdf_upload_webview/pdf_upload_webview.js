@@ -26,6 +26,9 @@ Page({
     if (!prevPage || !this._result) return;
     if (this._result.draft_task) {
       prevPage.setData({ draftTask: this._result.draft_task });
+      if (this._result.tasks && this._result.tasks.length) {
+        prevPage.setData({ taskDrafts: this._result.tasks });
+      }
     } else if (this._result.error) {
       wx.showToast({ title: this._result.error, icon: 'none' });
     }
