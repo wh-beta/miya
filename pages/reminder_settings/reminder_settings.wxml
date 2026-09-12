@@ -1,0 +1,15 @@
+<view class="page">
+  <view class="header">
+    <text class="title">设置提醒</text>
+  </view>
+
+  <view class="hint-card">
+    开启后，将在作业截止前通过微信订阅消息、服务器推送和手机日历三种方式提醒你。
+  </view>
+
+  <button class="primary-btn" bindtap="onSetReminder" loading="{{working}}" disabled="{{working}}">
+    {{working ? '设置中...' : '开启提醒'}}
+  </button>
+
+  <bottom-nav active="mine-reminder" role="{{role}}" />
+</view>

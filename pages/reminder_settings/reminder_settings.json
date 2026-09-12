@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "设置提醒",
+  "usingComponents": {
+    "bottom-nav": "/components/bottom_nav/bottom_nav"
+  }
+}

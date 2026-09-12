@@ -12,27 +12,6 @@
       </view>
       <text class="menu-arrow">›</text>
     </view>
-    <view class="menu-card" bindtap="onManageAccount">
-      <view class="menu-text">
-        <text class="menu-title">账号与学生绑定</text>
-        <text class="menu-desc">设置姓名，关联孩子的账号</text>
-      </view>
-      <text class="menu-arrow">›</text>
-    </view>
-    <view class="menu-card" bindtap="onSetReminder">
-      <view class="menu-text">
-        <text class="menu-title">设置提醒</text>
-        <text class="menu-desc">开启作业到期提醒</text>
-      </view>
-      <text class="menu-arrow">›</text>
-    </view>
-    <view class="menu-card" bindtap="onFindSimilarQuestions">
-      <view class="menu-text">
-        <text class="menu-title">查找相似题</text>
-        <text class="menu-desc">拍一道题或上传PDF，找同类练习</text>
-      </view>
-      <text class="menu-arrow">›</text>
-    </view>
     <view class="menu-card" bindtap="onViewSchoolSchedule">
       <view class="menu-text">
         <text class="menu-title">课程表</text>

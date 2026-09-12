@@ -2,17 +2,60 @@
   min-height: 100vh;
   box-sizing: border-box;
   background: #F6F9F2;
-  padding: 0 24rpx 140rpx;
+  padding: 24rpx 24rpx 200rpx;
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.menu-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1rpx solid #DCE6D6;
+  border-radius: 24rpx;
+  padding: 28rpx 28rpx;
+}
+
+.menu-card:active {
+  background: #EEF4E9;
+}
+
+.menu-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.menu-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #24302A;
+}
+
+.menu-desc {
+  font-size: 22rpx;
+  color: #8B978C;
+}
+
+.menu-arrow {
+  font-size: 40rpx;
+  color: #1F8F82;
+  font-weight: 300;
 }
 
 .placeholder {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 16rpx;
-  padding-bottom: 140rpx;
+  padding: 100rpx 0;
 }
 
 .icon {

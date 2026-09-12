@@ -1,4 +1,14 @@
 <view class="page">
+  <view class="menu-list">
+    <view class="menu-card" bindtap="onFindSimilarQuestions">
+      <view class="menu-text">
+        <text class="menu-title">查找相似题</text>
+        <text class="menu-desc">拍一道题或上传PDF，找同类练习</text>
+      </view>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
   <view class="placeholder">
     <text class="icon">🌱</text>
     <text class="title">成长记录</text>

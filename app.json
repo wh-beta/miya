@@ -15,7 +15,8 @@
     "pages/todo/todo",
     "pages/growth/growth",
     "pages/relations/relations",
-    "pages/urging/urging"
+    "pages/urging/urging",
+    "pages/reminder_settings/reminder_settings"
   ],
   "window": {
     "navigationBarTitleText": "课后助手"
