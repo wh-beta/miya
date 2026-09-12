@@ -1,8 +1,9 @@
+const { getOpenid } = require('../../utils/auth.js');
 const {
   listMyScheduleGroups,
   getGroupSchedule,
   saveGroupSchedule,
-  downloadGroupInviteQrcode,
+  getGroupInviteCode,
   acceptScheduleInvite,
 } = require('../../utils/schedule.js');
 const { SCHEDULE_WIDTH, computeSchedulePosterHeight, drawSchedulePoster } = require('../../utils/posterCanvas.js');
@@ -26,6 +27,7 @@ Page({
     currentGroupId: null,
     currentGroupLabel: '',
     canEdit: false,
+    inviteCode: '',
     grid: emptyGrid(),
     editing: false,
     loading: true,
@@ -35,26 +37,32 @@ Page({
 
   onLoad(options) {
     this.setData({ role: options.role || 'parent' });
+
+    // Arrived via a "邀请加入" card share (see onShareAppMessage below) —
+    // a plain query-string path, which WeChat reliably delivers straight
+    // into onLoad(options), unlike a wxacode's scene value (see this
+    // page's git history for why that approach was dropped). A cold
+    // launch has no session yet, so stash the code and route through the
+    // normal role picker; task_calendar.js's consumePending() redeems it
+    // once login completes, mirroring login.js's own options.invite handling.
+    if (options.invite) {
+      if (!getOpenid()) {
+        wx.setStorageSync('pendingScheduleInviteCode', options.invite);
+        wx.reLaunch({ url: '/pages/login/login' });
+        return;
+      }
+      acceptScheduleInvite(options.invite)
+        .then(() => wx.showToast({ title: '已获得课程表查看权限', icon: 'none' }))
+        .catch((err) => wx.showToast({ title: err.message || '课程表授权失败', icon: 'none' }))
+        .then(() => this._loadGroups());
+      return;
+    }
+
     this._loadGroups();
   },
 
   onShow() {
-    // Covers the already-logged-in path: scanning the invite wxacode
-    // routes straight to this page's onLoad/onShow with the scene string
-    // stashed by app.js. task_calendar.js's consumePending() covers the
-    // other path (cold launch, had to go through login first, lands there
-    // instead). Also covers returning from schedule_import after a save.
-    const code = wx.getStorageSync('pendingScheduleInviteCode');
-    if (code) {
-      wx.removeStorageSync('pendingScheduleInviteCode');
-      acceptScheduleInvite(code)
-        .then(() => {
-          wx.showToast({ title: '已获得课程表查看权限', icon: 'none' });
-          this._loadGroups();
-        })
-        .catch((err) => wx.showToast({ title: err.message || '课程表授权失败', icon: 'none' }));
-      return;
-    }
+    // Returning from schedule_import after a save.
     if (this._needsRefresh) {
       this._needsRefresh = false;
       this._loadGroups();
@@ -89,6 +97,7 @@ Page({
       currentGroupId: id,
       currentGroupLabel: label,
       canEdit: !!isOwner,
+      inviteCode: '',
       editing: false,
       loading: true,
     });
@@ -106,6 +115,9 @@ Page({
         wx.showToast({ title: err.message || '加载课程表失败', icon: 'none' });
         this.setData({ loading: false });
       });
+    if (isOwner) {
+      getGroupInviteCode(id).then((code) => this.setData({ inviteCode: code })).catch(() => {});
+    }
   },
 
   onToggleEdit() {
@@ -153,36 +165,26 @@ Page({
     this._needsRefresh = true;
   },
 
-  _shareWithQr(regenerate) {
-    wx.showLoading({ title: '生成中...' });
-    downloadGroupInviteQrcode(this.data.currentGroupId, regenerate)
-      .then((qrPath) => this._renderAndShare(qrPath))
-      .catch(() => {
-        // Only the owner can mint an invite code (server-side 403 for
-        // everyone else) — sharing the plain schedule image should still
-        // work for a viewer, so a QR fetch failure of any kind just falls
-        // back to a badge-less poster rather than blocking the share.
-        this._renderAndShare(null);
-      });
-  },
-
-  onShareSchedule() {
-    this._shareWithQr(false);
-  },
-
   onRegenerateInvite() {
-    if (!this.data.canEdit) return;
+    if (!this.data.canEdit || !this.data.currentGroupId) return;
     wx.showModal({
       title: '重新生成邀请码？',
-      content: '之前分享过的课程表图片里的邀请码将失效，需要重新分享新图片。',
+      content: '之前分享出去的"邀请加入"链接将失效。',
       success: (res) => {
-        if (res.confirm) this._shareWithQr(true);
+        if (!res.confirm) return;
+        getGroupInviteCode(this.data.currentGroupId, true)
+          .then((code) => {
+            this.setData({ inviteCode: code });
+            wx.showToast({ title: '已重新生成', icon: 'none' });
+          })
+          .catch((err) => wx.showToast({ title: err.message || '操作失败', icon: 'none' }));
       },
     });
   },
 
-  _renderAndShare(qrPath) {
-    const height = computeSchedulePosterHeight(PERIOD_COUNT, !!qrPath);
+  onShareSchedule() {
+    const height = computeSchedulePosterHeight(PERIOD_COUNT);
+    wx.showLoading({ title: '生成中...' });
     this.setData({ shareCanvasHeight: height }, () => {
       wx.nextTick(() => {
         const query = this.createSelectorQuery();
@@ -201,40 +203,40 @@ Page({
           canvas.width = w * dpr;
           canvas.height = h * dpr;
           ctx.scale(dpr, dpr);
-
-          const finish = (qrImage) => {
-            drawSchedulePoster(ctx, w, h, { grid: this.data.grid, qrImage, groupLabel: this.data.currentGroupLabel });
-            wx.canvasToTempFilePath({
-              canvas,
-              fileType: 'png',
-              success: (r) => {
-                wx.hideLoading();
-                wx.showShareImageMenu({
-                  path: r.tempFilePath,
-                  fail: (err) => wx.showToast({ title: err.errMsg || '分享失败', icon: 'none' }),
-                });
-              },
-              fail: () => {
-                wx.hideLoading();
-                wx.showToast({ title: '生成失败', icon: 'none' });
-              },
-            });
-          };
-
-          if (qrPath) {
-            const img = canvas.createImage();
-            img.onload = () => finish(img);
-            img.onerror = () => finish(null);
-            img.src = qrPath;
-          } else {
-            finish(null);
-          }
+          drawSchedulePoster(ctx, w, h, { grid: this.data.grid, groupLabel: this.data.currentGroupLabel });
+          wx.canvasToTempFilePath({
+            canvas,
+            fileType: 'png',
+            success: (r) => {
+              wx.hideLoading();
+              wx.showShareImageMenu({
+                path: r.tempFilePath,
+                fail: (err) => wx.showToast({ title: err.errMsg || '分享失败', icon: 'none' }),
+              });
+            },
+            fail: () => {
+              wx.hideLoading();
+              wx.showToast({ title: '生成失败', icon: 'none' });
+            },
+          });
         });
       });
     });
   },
 
+  // Triggered by the "邀请加入" button (open-type="share"), not a bindtap —
+  // WeChat calls this to build the card, then natively carries its `path`
+  // (including the ?invite= query string) through to the recipient's own
+  // onLoad — see this page's onLoad above and account_link.js's identical
+  // pattern for the parent-student invite flow.
   onShareAppMessage() {
+    if (this.data.canEdit && this.data.currentGroupId && this.data.inviteCode) {
+      return {
+        title: `邀请你加入"${this.data.currentGroupLabel}"课程表`,
+        path: `/pages/school_schedule/school_schedule?invite=${this.data.inviteCode}`,
+        imageUrl: '/images/share_invite.png',
+      };
+    }
     return { title: '课程表', path: `/pages/school_schedule/school_schedule?role=${this.data.role}` };
   },
 

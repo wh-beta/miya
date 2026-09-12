@@ -168,28 +168,21 @@ const S_ROW_H = 68;
 const S_COL0_W = 64;
 const S_FOOTER_H = 56;
 const S_HEADER_GAP = 8;
-const S_QR_SIZE = 130;
-const S_QR_BLOCK_H = 170;
 const DAY_LABELS = ['周一', '周二', '周三', '周四', '周五'];
 
-// hasQr must match whether drawSchedulePoster's data.qrImage will be set —
-// the canvas is sized from this before the QR download even starts, so
-// the two have to be decided together by the caller.
-function computeSchedulePosterHeight(periodCount, hasQr) {
-  const qrBlock = hasQr ? S_QR_BLOCK_H : 0;
-  return S_PAD + S_TITLE_H + S_HEADER_H + S_HEADER_GAP + periodCount * S_ROW_H + qrBlock + S_FOOTER_H + S_PAD;
+function computeSchedulePosterHeight(periodCount) {
+  return S_PAD + S_TITLE_H + S_HEADER_H + S_HEADER_GAP + periodCount * S_ROW_H + S_FOOTER_H + S_PAD;
 }
 
 function _pad2(n) {
   return String(n).padStart(2, '0');
 }
 
-// data: { grid, qrImage, groupLabel } — grid[period-1][day-1] = subject
-// string ('' = free period); qrImage is an optional canvas.createImage()-
-// loaded invite wxacode (see utils/schedule.js's downloadGroupInviteQrcode);
-// groupLabel is the "学校 年级班级" string, shown in place of a generic title.
+// data: { grid, groupLabel } — grid[period-1][day-1] = subject string
+// ('' = free period); groupLabel is the "学校 年级班级" string, shown in
+// place of a generic title.
 function drawSchedulePoster(ctx, width, height, data) {
-  const { grid, qrImage, groupLabel } = data;
+  const { grid, groupLabel } = data;
   const periodCount = grid.length;
 
   ctx.textAlign = 'left';
@@ -249,31 +242,6 @@ function drawSchedulePoster(ctx, width, height, data) {
   });
 
   y += periodCount * S_ROW_H + 20;
-
-  if (qrImage) {
-    const blockH = S_QR_BLOCK_H - 20;
-    ctx.fillStyle = '#FFFFFF';
-    roundRect(ctx, tableX, y, tableW, blockH, 16);
-    ctx.fill();
-    ctx.strokeStyle = '#DCE6D6';
-    roundRect(ctx, tableX, y, tableW, blockH, 16);
-    ctx.stroke();
-
-    const qrX = tableX + 20;
-    const qrY = y + (blockH - S_QR_SIZE) / 2;
-    ctx.drawImage(qrImage, qrX, qrY, S_QR_SIZE, S_QR_SIZE);
-
-    const textX = qrX + S_QR_SIZE + 24;
-    ctx.fillStyle = '#24302A';
-    ctx.font = 'bold 23px sans-serif';
-    ctx.fillText('长按识别小程序码', textX, qrY + 14);
-    ctx.fillStyle = '#8B978C';
-    ctx.font = '20px sans-serif';
-    ctx.fillText('获取课程表查看权限', textX, qrY + 50);
-    ctx.fillText('（可反复扫描，家人都能加入）', textX, qrY + 80);
-
-    y += S_QR_BLOCK_H;
-  }
 
   ctx.fillStyle = '#8B978C';
   ctx.font = '20px sans-serif';

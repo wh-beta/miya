@@ -103,16 +103,19 @@ function saveGroupSchedule(groupId, entries) {
   });
 }
 
-// Downloads the current invite wxacode (a scannable WeChat mini-program
-// code, not a generic QR code) for one group to a local temp file.
-// wx.downloadFile (rather than wx.request) so WeChat handles the binary
-// transfer directly and hands back a file path ready for canvas.createImage().
-function downloadGroupInviteQrcode(groupId, regenerate) {
+// The current invite code for one group, delivered via a WeChat card share
+// (open-type="share", see school_schedule.js's onShareAppMessage) rather
+// than an embedded wxacode image — see get_group_invite_code in main.py
+// for why the image approach was dropped.
+function getGroupInviteCode(groupId, regenerate) {
   return new Promise((resolve, reject) => {
-    const q = `openid=${encodeURIComponent(getOpenid())}${regenerate ? '&regenerate=true' : ''}`;
-    wx.downloadFile({
-      url: `${API_BASE_URL}/schedule_groups/${groupId}/invite_qrcode?${q}`,
-      success: (res) => (res.statusCode < 400 ? resolve(res.tempFilePath) : reject(new Error('获取邀请码失败'))),
+    const data = { openid: getOpenid() };
+    if (regenerate) data.regenerate = true;
+    wx.request({
+      url: `${API_BASE_URL}/schedule_groups/${groupId}/invite_code`,
+      method: 'GET',
+      data,
+      success: (res) => (res.statusCode < 400 ? resolve(res.data.code) : reject(new Error((res.data && res.data.detail) || '获取邀请码失败'))),
       fail: reject,
     });
   });
@@ -162,7 +165,7 @@ module.exports = {
   createScheduleGroup,
   getGroupSchedule,
   saveGroupSchedule,
-  downloadGroupInviteQrcode,
+  getGroupInviteCode,
   acceptScheduleInvite,
   uploadWeeklyScheduleImage,
 };
