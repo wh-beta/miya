@@ -39,7 +39,50 @@ function _checkNameAndRoute(role) {
   });
 }
 
-function loginAndRoute(role) {
+// Exchanges a fresh wx.login() code for an openid and checks whether it's
+// already registered — a returning user has no session persisted across
+// cold starts (see getOpenid, an in-memory variable) but does already
+// have a role on file server-side, so there's no need to ask again every
+// launch. Resolves { needsRole: true } for a genuinely new openid (caller
+// should prompt and call registerRoleAndRoute); for a returning user it
+// completes routing itself (via _checkNameAndRoute) and resolves
+// { needsRole: false } — DEV_MOCK_LOGIN has no persisted account to check
+// against, so it always reports needsRole: true.
+function checkLoginAndRoute() {
+  if (DEV_MOCK_LOGIN) {
+    return Promise.resolve({ needsRole: true });
+  }
+  return new Promise((resolve, reject) => {
+    wx.login({
+      success: (res) => {
+        wx.request({
+          url: `${API_BASE_URL}/auth/login`,
+          method: 'POST',
+          header: { 'Content-Type': 'application/json' },
+          data: { code: res.code },
+          success: (r) => {
+            if (r.statusCode >= 400) {
+              reject(new Error((r.data && r.data.detail) || '登录失败'));
+              return;
+            }
+            _openid = r.data.openid;
+            if (r.data.is_new) {
+              resolve({ needsRole: true });
+            } else {
+              _checkNameAndRoute(r.data.role).then(() => resolve({ needsRole: false }), reject);
+            }
+          },
+          fail: (err) => reject(new Error(err.errMsg || '网络错误')),
+        });
+      },
+      fail: (err) => reject(new Error(err.errMsg || 'wx.login 失败')),
+    });
+  });
+}
+
+// Registers a chosen role for the openid checkLoginAndRoute already
+// resolved as new, then completes routing exactly like a returning user.
+function registerRoleAndRoute(role) {
   if (DEV_MOCK_LOGIN) {
     _openid = '__dev_' + role;
     wx.showToast({ title: '开发模式 (模拟登录)', icon: 'none', duration: 2000 });
@@ -48,25 +91,18 @@ function loginAndRoute(role) {
   }
 
   return new Promise((resolve, reject) => {
-    wx.login({
-      success: (res) => {
-        wx.request({
-          url: `${API_BASE_URL}/auth/login`,
-          method: 'POST',
-          header: { 'Content-Type': 'application/json' },
-          data: { code: res.code, role },
-          success: (r) => {
-            if (r.statusCode >= 400) {
-              reject(new Error((r.data && r.data.detail) || '登录失败'));
-              return;
-            }
-            _openid = r.data.openid;
-            _checkNameAndRoute(role).then(resolve, reject);
-          },
-          fail: (err) => reject(new Error(err.errMsg || '网络错误')),
-        });
+    wx.request({
+      url: `${API_BASE_URL}/auth/register_role`,
+      method: 'POST',
+      data: { openid: _openid, role },
+      success: (r) => {
+        if (r.statusCode >= 400) {
+          reject(new Error((r.data && r.data.detail) || '注册失败'));
+          return;
+        }
+        _checkNameAndRoute(role).then(resolve, reject);
       },
-      fail: (err) => reject(new Error(err.errMsg || 'wx.login 失败')),
+      fail: (err) => reject(new Error(err.errMsg || '网络错误')),
     });
   });
 }
@@ -173,7 +209,8 @@ function acceptInvite(inviteCode) {
 }
 
 module.exports = {
-  loginAndRoute,
+  checkLoginAndRoute,
+  registerRoleAndRoute,
   getOpenid,
   getMyProfile,
   setMyName,
