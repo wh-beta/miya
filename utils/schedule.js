@@ -39,7 +39,25 @@ function createScheduleGroup({ school, grade, className }) {
       url: `${API_BASE_URL}/schedule_groups`,
       method: 'POST',
       data: { openid: getOpenid(), school, grade, class_name: className },
-      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '创建失败'))),
+      success: (res) => {
+        if (res.statusCode < 400) {
+          resolve(res.data);
+          return;
+        }
+        // A 409 carries a structured detail (see create_schedule_group in
+        // main.py) — {message, existing_group_id, owner_name} — rather
+        // than a plain string, so the caller can point the user straight
+        // at the group that already exists instead of just failing.
+        const detail = res.data && res.data.detail;
+        const isDuplicate = detail && typeof detail === 'object';
+        const err = new Error((isDuplicate ? detail.message : detail) || '创建失败');
+        err.statusCode = res.statusCode;
+        if (isDuplicate) {
+          err.existingGroupId = detail.existing_group_id;
+          err.ownerName = detail.owner_name;
+        }
+        reject(err);
+      },
       fail: reject,
     });
   });

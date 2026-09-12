@@ -175,6 +175,22 @@ Page({
       .then((group) => this._saveTo(group.id, entries))
       .catch((err) => {
         this.setData({ saving: false });
+        if (err.statusCode === 409) {
+          // school+grade+class already identifies a real class — someone
+          // else (or this same user, on a retry) already created it, so
+          // point at the search flow instead of letting them create a
+          // disconnected duplicate they'd never actually be able to use.
+          wx.showModal({
+            title: '班级已存在',
+            content: `${school} ${grade}${className} 已经被${err.ownerName || '其他人'}创建，请从"选择已有班级"中查找并选择它。`,
+            showCancel: false,
+            success: () => {
+              this.setData({ groupMode: 'search', searchQuery: school });
+              this._search(school);
+            },
+          });
+          return;
+        }
         wx.showModal({ title: '创建班级失败', content: err.message || '未知错误', showCancel: false });
       });
   },
