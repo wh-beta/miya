@@ -1,5 +1,10 @@
-const { getMyProfile } = require('../../utils/auth.js');
-const { getWeeklySchedule, saveWeeklySchedule, downloadScheduleInviteQrcode, acceptScheduleInvite } = require('../../utils/schedule.js');
+const {
+  listMyScheduleGroups,
+  getGroupSchedule,
+  saveGroupSchedule,
+  downloadGroupInviteQrcode,
+  acceptScheduleInvite,
+} = require('../../utils/schedule.js');
 const { SCHEDULE_WIDTH, computeSchedulePosterHeight, drawSchedulePoster } = require('../../utils/posterCanvas.js');
 
 const DAYS = ['周一', '周二', '周三', '周四', '周五'];
@@ -9,46 +14,85 @@ function emptyGrid() {
   return Array.from({ length: PERIOD_COUNT }, () => ['', '', '', '', '']);
 }
 
+function groupLabel(g) {
+  return `${g.school} ${g.grade}${g.class_name}`;
+}
+
 Page({
   data: {
     role: 'parent',
     days: DAYS,
+    groups: [],
+    currentGroupId: null,
+    currentGroupLabel: '',
+    canEdit: false,
     grid: emptyGrid(),
     editing: false,
-    canEdit: false,
     loading: true,
-    unauthorized: false,
     shareCanvasWidth: SCHEDULE_WIDTH,
     shareCanvasHeight: 0,
   },
 
   onLoad(options) {
-    this.setData({ role: options.role || 'parent', canEdit: (options.role || 'parent') === 'parent' });
-    getMyProfile()
-      .then((p) => this.setData({ canEdit: p.role === 'parent' }))
-      .catch(() => {});
-    this._load();
+    this.setData({ role: options.role || 'parent' });
+    this._loadGroups();
   },
 
   onShow() {
-    // Covers the already-logged-in path: scanning the invite wxacode routes
-    // straight to this page's onLoad/onShow with the scene string stashed
-    // by app.js. task_calendar.js's consumePending() covers the other path
-    // (cold launch, had to go through login first, lands there instead).
+    // Covers the already-logged-in path: scanning the invite wxacode
+    // routes straight to this page's onLoad/onShow with the scene string
+    // stashed by app.js. task_calendar.js's consumePending() covers the
+    // other path (cold launch, had to go through login first, lands there
+    // instead). Also covers returning from schedule_import after a save.
     const code = wx.getStorageSync('pendingScheduleInviteCode');
-    if (!code) return;
-    wx.removeStorageSync('pendingScheduleInviteCode');
-    acceptScheduleInvite(code)
-      .then(() => {
-        wx.showToast({ title: '已获得课程表查看权限', icon: 'none' });
-        this._load();
-      })
-      .catch((err) => wx.showToast({ title: err.message || '课程表授权失败', icon: 'none' }));
+    if (code) {
+      wx.removeStorageSync('pendingScheduleInviteCode');
+      acceptScheduleInvite(code)
+        .then(() => {
+          wx.showToast({ title: '已获得课程表查看权限', icon: 'none' });
+          this._loadGroups();
+        })
+        .catch((err) => wx.showToast({ title: err.message || '课程表授权失败', icon: 'none' }));
+      return;
+    }
+    if (this._needsRefresh) {
+      this._needsRefresh = false;
+      this._loadGroups();
+    }
   },
 
-  _load() {
-    this.setData({ loading: true, editing: false, unauthorized: false });
-    getWeeklySchedule()
+  _loadGroups() {
+    this.setData({ loading: true });
+    listMyScheduleGroups()
+      .then((groups) => {
+        this.setData({ groups, loading: false });
+        if (groups.length === 0) return;
+        const preferredId = this.data.currentGroupId;
+        const stillThere = groups.find((g) => g.id === preferredId);
+        const target = stillThere || groups[0];
+        this._selectGroup(target.id, groupLabel(target), target.is_owner);
+      })
+      .catch((err) => {
+        wx.showToast({ title: err.message || '加载失败', icon: 'none' });
+        this.setData({ loading: false });
+      });
+  },
+
+  onSwitchGroup(e) {
+    const { id, label, owner } = e.currentTarget.dataset;
+    if (id === this.data.currentGroupId) return;
+    this._selectGroup(id, label, owner === 'true' || owner === true);
+  },
+
+  _selectGroup(id, label, isOwner) {
+    this.setData({
+      currentGroupId: id,
+      currentGroupLabel: label,
+      canEdit: !!isOwner,
+      editing: false,
+      loading: true,
+    });
+    getGroupSchedule(id)
       .then((entries) => {
         const grid = emptyGrid();
         entries.forEach((e) => {
@@ -59,12 +103,8 @@ Page({
         this.setData({ grid, loading: false });
       })
       .catch((err) => {
-        if (err.statusCode === 403) {
-          this.setData({ loading: false, unauthorized: true });
-        } else {
-          wx.showToast({ title: err.message || '加载课程表失败', icon: 'none' });
-          this.setData({ loading: false });
-        }
+        wx.showToast({ title: err.message || '加载课程表失败', icon: 'none' });
+        this.setData({ loading: false });
       });
   },
 
@@ -72,7 +112,7 @@ Page({
     if (!this.data.canEdit) return;
     if (this.data.editing) {
       // Cancelling: reload from server so in-progress edits aren't kept around half-applied.
-      this._load();
+      this._selectGroup(this.data.currentGroupId, this.data.currentGroupLabel, true);
     } else {
       this.setData({ editing: true });
     }
@@ -86,7 +126,7 @@ Page({
   },
 
   onSave() {
-    if (!this.data.canEdit) return;
+    if (!this.data.canEdit || !this.data.currentGroupId) return;
     const entries = [];
     this.data.grid.forEach((row, pIdx) => {
       row.forEach((subject, dIdx) => {
@@ -96,7 +136,7 @@ Page({
       });
     });
     wx.showLoading({ title: '保存中...' });
-    saveWeeklySchedule(entries)
+    saveGroupSchedule(this.data.currentGroupId, entries)
       .then(() => {
         wx.hideLoading();
         wx.showToast({ title: '已保存' });
@@ -108,15 +148,20 @@ Page({
       });
   },
 
+  onGoImport() {
+    wx.navigateTo({ url: `/pages/schedule_import/schedule_import?role=${this.data.role}` });
+    this._needsRefresh = true;
+  },
+
   _shareWithQr(regenerate) {
     wx.showLoading({ title: '生成中...' });
-    downloadScheduleInviteQrcode(regenerate)
+    downloadGroupInviteQrcode(this.data.currentGroupId, regenerate)
       .then((qrPath) => this._renderAndShare(qrPath))
       .catch(() => {
-        // The invite badge is a nice-to-have on top of the core "share the
-        // schedule as an image" feature — don't let a WeChat API hiccup
-        // (e.g. token/quota issue) block sharing entirely.
-        wx.showToast({ title: '邀请码生成失败，仅分享课程表', icon: 'none' });
+        // Only the owner can mint an invite code (server-side 403 for
+        // everyone else) — sharing the plain schedule image should still
+        // work for a viewer, so a QR fetch failure of any kind just falls
+        // back to a badge-less poster rather than blocking the share.
         this._renderAndShare(null);
       });
   },
@@ -158,7 +203,7 @@ Page({
           ctx.scale(dpr, dpr);
 
           const finish = (qrImage) => {
-            drawSchedulePoster(ctx, w, h, { grid: this.data.grid, qrImage });
+            drawSchedulePoster(ctx, w, h, { grid: this.data.grid, qrImage, groupLabel: this.data.currentGroupLabel });
             wx.canvasToTempFilePath({
               canvas,
               fileType: 'png',

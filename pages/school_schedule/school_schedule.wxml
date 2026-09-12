@@ -1,15 +1,33 @@
 <view class="page">
   <view class="header">
     <text class="title">课程表</text>
+    <button size="mini" class="action-btn import-btn" bindtap="onGoImport">📥 导入</button>
   </view>
 
-  <view wx:if="{{loading}}" class="empty-state">加载中...</view>
+  <view wx:if="{{loading && groups.length === 0}}" class="empty-state">加载中...</view>
 
-  <view wx:elif="{{unauthorized}}" class="empty-state">
-    你还没有获得课程表查看权限。请联系已授权的家长，请对方"一键共享"课程表图片给你，长按识别图片里的小程序码即可获得权限。
+  <view wx:elif="{{groups.length === 0}}" class="empty-state">
+    你还没有任何班级课程表。点击右上角"导入"拍照识别一张课程表，或手动创建一个班级。
   </view>
 
   <block wx:else>
+    <view class="chip-row" wx:if="{{groups.length > 1}}">
+      <view
+        wx:for="{{groups}}"
+        wx:key="id"
+        class="chip {{item.id === currentGroupId ? 'active' : ''}}"
+        data-id="{{item.id}}"
+        data-label="{{item.school}} {{item.grade}}{{item.class_name}}"
+        data-owner="{{item.is_owner}}"
+        bindtap="onSwitchGroup"
+      >{{item.school}} {{item.grade}}{{item.class_name}}{{item.is_owner ? '' : ' (受邀)'}}</view>
+    </view>
+
+    <view class="group-label" wx:if="{{currentGroupLabel}}">
+      <text>{{currentGroupLabel}}</text>
+      <text class="role-tag" wx:if="{{!canEdit}}">受邀查看</text>
+    </view>
+
     <view class="action-row">
       <button wx:if="{{canEdit && !editing}}" size="mini" class="action-btn edit-btn" bindtap="onToggleEdit">✏️ 编辑</button>
       <block wx:if="{{canEdit && editing}}">

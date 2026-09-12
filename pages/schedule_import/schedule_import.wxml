@@ -1,0 +1,94 @@
+<view class="page">
+  <view class="header">
+    <text class="title">导入课程表</text>
+    <text class="step-indicator">{{step === 'photo' ? '1/3 选择照片' : (step === 'review' ? '2/3 核对内容' : '3/3 关联班级')}}</text>
+  </view>
+
+  <view wx:if="{{step === 'photo'}}" class="step-block">
+    <view class="hint-card">拍照或从相册选择一张课程表照片，自动识别成表格；也可以跳过，直接手动创建空白课程表。</view>
+    <button class="primary-btn" bindtap="onChoosePhoto" loading="{{ocrLoading}}" disabled="{{ocrLoading}}">
+      {{ocrLoading ? '识别中...' : '📷 选择课程表照片'}}
+    </button>
+    <button class="secondary-btn" bindtap="onSkipPhoto">跳过，手动创建</button>
+  </view>
+
+  <view wx:if="{{step === 'review'}}" class="step-block">
+    <view class="hint-card">请检查识别结果，可以直接修改。</view>
+    <scroll-view scroll-x class="table-scroll">
+      <view class="schedule-table">
+        <view class="table-row header-row">
+          <view class="table-cell period-cell"></view>
+          <view wx:for="{{days}}" wx:key="*this" class="table-cell day-cell-h">{{item}}</view>
+        </view>
+        <view class="table-row" wx:for="{{grid}}" wx:for-item="row" wx:for-index="pIdx" wx:key="pIdx">
+          <view class="table-cell period-cell">{{pIdx + 1}}</view>
+          <view class="table-cell subject-cell" wx:for="{{row}}" wx:for-item="subj" wx:for-index="dIdx" wx:key="dIdx">
+            <input
+              class="subject-input"
+              value="{{subj}}"
+              data-period="{{pIdx + 1}}"
+              data-day="{{dIdx + 1}}"
+              bindinput="onCellInput"
+              placeholder="—"
+            />
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="nav-row">
+      <button class="secondary-btn" bindtap="onReviewBack">上一步</button>
+      <button class="primary-btn" bindtap="onReviewNext">下一步</button>
+    </view>
+  </view>
+
+  <view wx:if="{{step === 'group'}}" class="step-block">
+    <view class="seg">
+      <view class="seg-btn {{groupMode === 'search' ? 'active' : ''}}" bindtap="onGroupModeSearch">选择已有班级</view>
+      <view class="seg-btn {{groupMode === 'create' ? 'active' : ''}}" bindtap="onGroupModeCreate">新建班级</view>
+    </view>
+
+    <block wx:if="{{groupMode === 'search'}}">
+      <view class="search-row">
+        <input
+          class="search-input"
+          placeholder="搜索学校/年级/班级"
+          value="{{searchQuery}}"
+          bindinput="onSearchInput"
+          bindconfirm="onSearchConfirm"
+          confirm-type="search"
+        />
+        <button size="mini" class="search-btn" bindtap="onSearchConfirm">搜索</button>
+      </view>
+      <view wx:if="{{searching}}" class="hint-text">搜索中...</view>
+      <view wx:elif="{{searchResults.length === 0}}" class="hint-text">没有找到班级，可以新建一个</view>
+      <view wx:else class="group-list">
+        <view
+          wx:for="{{searchResults}}"
+          wx:key="id"
+          class="group-item {{item.id === selectedGroupId ? 'active' : ''}}"
+          data-id="{{item.id}}"
+          data-label="{{item.school}} {{item.grade}}{{item.class_name}}"
+          data-owner="{{item.is_owner}}"
+          bindtap="onPickGroup"
+        >
+          <view class="group-item-main">
+            <text class="group-item-label">{{item.school}} {{item.grade}}{{item.class_name}}</text>
+            <text class="group-item-owner">{{item.is_owner ? '你创建的' : ('创建者：' + (item.owner_name || '未知'))}}</text>
+          </view>
+          <text class="group-item-tag" wx:if="{{!item.is_owner}}">不可导入</text>
+        </view>
+      </view>
+    </block>
+
+    <block wx:else>
+      <input class="form-input" placeholder="学校，例如：实验小学" value="{{newSchool}}" bindinput="onNewSchoolInput" />
+      <input class="form-input" placeholder="年级，例如：三年级" value="{{newGrade}}" bindinput="onNewGradeInput" />
+      <input class="form-input" placeholder="班级，例如：2班" value="{{newClassName}}" bindinput="onNewClassNameInput" />
+    </block>
+
+    <view class="nav-row">
+      <button class="secondary-btn" bindtap="onGroupBack">上一步</button>
+      <button class="primary-btn" bindtap="onConfirmImport" loading="{{saving}}" disabled="{{saving}}">确认导入</button>
+    </view>
+  </view>
+</view>

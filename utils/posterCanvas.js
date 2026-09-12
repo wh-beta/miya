@@ -184,11 +184,12 @@ function _pad2(n) {
   return String(n).padStart(2, '0');
 }
 
-// data: { grid, qrImage } — grid[period-1][day-1] = subject string ('' =
-// free period); qrImage is an optional canvas.createImage()-loaded invite
-// wxacode (see utils/schedule.js's downloadScheduleInviteQrcode).
+// data: { grid, qrImage, groupLabel } — grid[period-1][day-1] = subject
+// string ('' = free period); qrImage is an optional canvas.createImage()-
+// loaded invite wxacode (see utils/schedule.js's downloadGroupInviteQrcode);
+// groupLabel is the "学校 年级班级" string, shown in place of a generic title.
 function drawSchedulePoster(ctx, width, height, data) {
-  const { grid, qrImage } = data;
+  const { grid, qrImage, groupLabel } = data;
   const periodCount = grid.length;
 
   ctx.textAlign = 'left';
@@ -199,7 +200,7 @@ function drawSchedulePoster(ctx, width, height, data) {
   let y = S_PAD;
   ctx.fillStyle = '#24302A';
   ctx.font = 'bold 32px sans-serif';
-  ctx.fillText('课程表', S_PAD, y);
+  ctx.fillText(truncateToWidth(ctx, groupLabel || '课程表', width - S_PAD * 2), S_PAD, y);
 
   const today = new Date();
   ctx.fillStyle = '#8B978C';
