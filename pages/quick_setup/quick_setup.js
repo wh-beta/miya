@@ -1,25 +1,34 @@
-// A minimal name-only setup step for a user arriving via a 课程表 link who
-// has a role but no name on file yet — deliberately NOT account_link.js's
-// full page (name + connect code + linking to other users): none of that
-// relationship-management UI is relevant here, since 课程表 access comes
-// from the group context this user is already in the middle of joining,
-// not from a parent-child link. See utils/auth.js's onNoName override and
-// school_schedule.js's onLoad for how a nameless user ends up here instead
-// of account_link.
-const { setMyName } = require('../../utils/auth.js');
+// A minimal identity-completion page for a user arriving via a 课程表
+// link who's missing a role, a name, or both — deliberately NOT
+// login.js's action-sheet-popup role picker, and NOT account_link.js's
+// full page (name + connect code + linking to other users): the user
+// asked for role selection to be a real page here, and none of
+// account_link's relationship-management UI is relevant when 课程表
+// access comes from the group context this user is already in the
+// middle of joining, not from a parent-child link. See utils/auth.js's
+// onNoName override and school_schedule.js's onLoad for how someone ends
+// up here instead of account_link/login.js's popup.
+const { getOpenid, registerRole, setMyName } = require('../../utils/auth.js');
 
 Page({
   data: {
-    role: 'parent',
+    role: '', // '' = not yet chosen; the role-picker step shows until this is set
     name: '',
     saving: false,
     showPrivacyModal: false,
   },
 
   onLoad(options) {
-    this.setData({ role: options.role || 'parent' });
     this._invite = options.invite || null;
+    if (options.role) this.setData({ role: options.role });
     this._checkPrivacyAuth();
+  },
+
+  onPickRole(e) {
+    this.setData({ role: e.currentTarget.dataset.role });
+  },
+  onChangeRole() {
+    this.setData({ role: '' });
   },
 
   // Same check as account_link.js — the nickname-fill keyboard suggestion
@@ -51,16 +60,33 @@ Page({
   },
 
   onSave() {
+    if (!this.data.role) {
+      wx.showToast({ title: '请先选择身份', icon: 'none' });
+      return;
+    }
     const name = (this.data.name || '').trim();
     if (!name) {
       wx.showToast({ title: '请输入姓名', icon: 'none' });
       return;
     }
+    if (!getOpenid()) {
+      // Shouldn't happen — school_schedule.js only routes here after a
+      // successful wx.login()+/auth/login — but fail loud rather than
+      // silently sending a null openid if it ever does.
+      wx.showToast({ title: '登录状态异常，请重新进入', icon: 'none' });
+      return;
+    }
+
     this.setData({ saving: true });
-    setMyName(name)
+    const role = this.data.role;
+    // registerRole is idempotent — safe whether this user already had a
+    // role (just missing a name) or is picking one for the first time
+    // right here.
+    registerRole(role)
+      .then(() => setMyName(name))
       .then(() => {
         const inviteParam = this._invite ? `&invite=${this._invite}` : '';
-        wx.reLaunch({ url: `/pages/school_schedule/school_schedule?role=${this.data.role}${inviteParam}` });
+        wx.reLaunch({ url: `/pages/school_schedule/school_schedule?role=${role}${inviteParam}` });
       })
       .catch((err) => {
         this.setData({ saving: false });

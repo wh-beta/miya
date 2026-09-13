@@ -1,4 +1,4 @@
-const { getOpenid, checkLoginAndRoute, registerRoleAndRoute } = require('../../utils/auth.js');
+const { getOpenid, checkLoginAndRoute } = require('../../utils/auth.js');
 const {
   listMyScheduleGroups,
   getGroupSchedule,
@@ -77,42 +77,26 @@ Page({
       this._afterIdentityResolved();
       return Promise.resolve();
     };
-    // A nameless user (new account, or an existing one that never
-    // finished setup) goes to quick_setup instead of account_link's full
-    // connections page — just name, then straight back here, carrying the
-    // invite code along so it's still redeemed once identity is complete.
+    // Anything missing — role, name, or both — goes to quick_setup (a
+    // real page, not login.js's action-sheet popup) instead of
+    // account_link's full connections page, carrying along whatever's
+    // already known (role, if resolved) plus the invite code so it's
+    // still redeemed once identity is complete.
     const goToQuickSetup = (role) => {
-      const inviteParam = this._pendingInvite ? `&invite=${this._pendingInvite}` : '';
-      wx.reLaunch({ url: `/pages/quick_setup/quick_setup?role=${role}${inviteParam}` });
+      const params = [];
+      if (role) params.push(`role=${role}`);
+      if (this._pendingInvite) params.push(`invite=${this._pendingInvite}`);
+      wx.reLaunch({ url: `/pages/quick_setup/quick_setup${params.length ? '?' + params.join('&') : ''}` });
       return Promise.resolve();
     };
     checkLoginAndRoute(stayHere, goToQuickSetup)
       .then((result) => {
-        if (result.needsRole) this._promptRoleInline(stayHere, goToQuickSetup);
+        if (result.needsRole) goToQuickSetup(null);
       })
       .catch((err) => {
         this.setData({ loading: false });
         wx.showToast({ title: err.message || '登录失败，请重试', icon: 'none' });
       });
-  },
-
-  // The same role popup login.js shows for a genuinely new account — see
-  // its _promptRole for why wx.showActionSheet, not a custom page.
-  _promptRoleInline(stayHere, goToQuickSetup) {
-    wx.showActionSheet({
-      itemList: ['我是家长', '我是学生'],
-      success: (res) => {
-        const role = res.tapIndex === 0 ? 'parent' : 'student';
-        registerRoleAndRoute(role, stayHere, goToQuickSetup).catch((err) => {
-          this.setData({ loading: false });
-          wx.showToast({ title: err.message || '登录失败，请重试', icon: 'none' });
-        });
-      },
-      fail: () => {
-        this.setData({ loading: false });
-        wx.showToast({ title: '需要选择身份才能查看课程表', icon: 'none' });
-      },
-    });
   },
 
   onShow() {

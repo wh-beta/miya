@@ -117,6 +117,28 @@ function registerRoleAndRoute(role, onHasName, onNoName) {
   });
 }
 
+// Bare registration, no routing side effects — for a caller (quick_setup.js)
+// that owns its own linear flow (pick role -> fill name -> save both ->
+// navigate once) rather than the auto-navigate chain registerRoleAndRoute
+// drives. Idempotent server-side: a returning user's real role always
+// wins over whatever's passed, so calling this for someone who already
+// has a role (just missing a name) is always safe.
+function registerRole(role) {
+  if (DEV_MOCK_LOGIN) {
+    _openid = _openid || '__dev_' + role;
+    return Promise.resolve({ openid: _openid, role });
+  }
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/auth/register_role`,
+      method: 'POST',
+      data: { openid: _openid, role },
+      success: (r) => (r.statusCode < 400 ? resolve(r.data) : reject(new Error((r.data && r.data.detail) || '注册失败'))),
+      fail: (err) => reject(new Error(err.errMsg || '网络错误')),
+    });
+  });
+}
+
 function getMyProfile() {
   return new Promise((resolve, reject) => {
     wx.request({
@@ -221,6 +243,7 @@ function acceptInvite(inviteCode) {
 module.exports = {
   checkLoginAndRoute,
   registerRoleAndRoute,
+  registerRole,
   getOpenid,
   getMyProfile,
   setMyName,

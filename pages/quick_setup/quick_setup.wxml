@@ -1,19 +1,27 @@
 <view class="container">
   <view class="brand">
     <text class="title">课后助手</text>
-    <text class="tagline">最后一步，填写你的姓名</text>
+    <text class="tagline" wx:if="{{!role}}">先告诉我们你是谁</text>
+    <text class="tagline" wx:else>最后一步，填写你的姓名</text>
   </view>
 
-  <view class="name-section">
+  <view class="role-list" wx:if="{{!role}}">
+    <button class="role-btn" data-role="parent" bindtap="onPickRole">家长</button>
+    <button class="role-btn" data-role="student" bindtap="onPickRole">学生</button>
+  </view>
+
+  <view class="name-section" wx:else>
     <input
       class="field-input"
       type="nickname"
+      focus="{{true}}"
       value="{{name}}"
       bindinput="onNameInput"
       placeholder="点击填入微信昵称，或手动输入"
     />
-    <text class="field-hint">点击输入框，键盘上方会出现"使用微信昵称"，点一下即可自动填入</text>
+    <text class="field-hint">键盘上方会出现"使用微信昵称"，点一下即可自动填入</text>
     <button class="save-btn" bindtap="onSave" loading="{{saving}}" disabled="{{saving}}">保存并查看课程表</button>
+    <text class="switch-role" bindtap="onChangeRole">身份选错了？重新选择</text>
   </view>
 
   <view wx:if="{{showPrivacyModal}}" class="privacy-overlay">
