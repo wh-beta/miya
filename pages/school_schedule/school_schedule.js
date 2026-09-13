@@ -53,7 +53,16 @@ Page({
     // programs have no history.replaceState — the only way to change what
     // a later "Open Mini Program" reconstructs is to actually navigate).
     this._urlGroupId = this._targetGroupId;
-    this._autoShare = options.autoShare === '1';
+    // Deliberately NOT a url param (learned the hard way — see git history):
+    // WeChat records whatever url is active at wx.showShareImageMenu time
+    // as the shared image's own re-entry target, so an ?autoShare=1 in the
+    // url would get baked into every image generated from this page load —
+    // meaning anyone who later taps "Open Mini Program" under that image
+    // would silently re-trigger ANOTHER share themselves, forever. A
+    // one-time storage flag consumed immediately here never becomes part
+    // of that recorded url.
+    this._autoShare = !!wx.getStorageSync('pendingScheduleAutoShare');
+    if (this._autoShare) wx.removeStorageSync('pendingScheduleAutoShare');
     debugLog('school_schedule_onLoad', {
       options,
       hadOpenidAlready: !!getOpenid(),
@@ -345,9 +354,12 @@ Page({
     // navigate. redirectTo tears this page down; the reloaded instance
     // finishes the share itself once its data loads (see _selectGroup's
     // _autoShare check) rather than trying to continue synchronously here.
+    // The "please continue the share" signal rides in storage, not the
+    // url itself — see onLoad's comment for why that distinction matters.
     if (this._urlGroupId !== this.data.currentGroupId) {
+      wx.setStorageSync('pendingScheduleAutoShare', '1');
       wx.redirectTo({
-        url: `/pages/school_schedule/school_schedule?role=${this.data.role}&group=${this.data.currentGroupId}&autoShare=1`,
+        url: `/pages/school_schedule/school_schedule?role=${this.data.role}&group=${this.data.currentGroupId}`,
       });
       return;
     }
