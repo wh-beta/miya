@@ -32,6 +32,7 @@ Page({
     grid: emptyGrid(),
     editing: false,
     loading: true,
+    targetGroupUnavailable: false,
     shareCanvasWidth: SCHEDULE_WIDTH,
     shareCanvasHeight: 0,
   },
@@ -39,6 +40,20 @@ Page({
   onLoad(options) {
     this.setData({ role: options.role || 'parent' });
     this._pendingInvite = options.invite || null;
+    // Which group (if any) this exact page URL points at — WeChat restores
+    // this path+query verbatim when someone later taps "Open Mini Program"
+    // under an image shared via 一键共享 (confirmed via debugLog: it
+    // reconstructs the exact url the page was on when wx.showShareImageMenu
+    // was called, nothing to do with the image's pixel content). Consumed
+    // once by _loadGroups's initial selection, then cleared — a later
+    // switchGroup/reload shouldn't keep snapping back to it.
+    this._targetGroupId = options.group ? Number(options.group) : null;
+    // What the CURRENT url actually reflects right now, so onShareSchedule
+    // knows whether it needs to refresh the url before sharing (mini
+    // programs have no history.replaceState — the only way to change what
+    // a later "Open Mini Program" reconstructs is to actually navigate).
+    this._urlGroupId = this._targetGroupId;
+    this._autoShare = options.autoShare === '1';
     debugLog('school_schedule_onLoad', {
       options,
       hadOpenidAlready: !!getOpenid(),
@@ -137,11 +152,28 @@ Page({
     this.setData({ loading: true });
     listMyScheduleGroups()
       .then((groups) => {
+        // Only the first call after a fresh URL-provided target applies it —
+        // clearing here means a later internal reload (onShow's refresh,
+        // cancelling an edit) falls back to the normal "keep whatever's
+        // currently selected" behavior instead of re-snapping to it.
+        const targetGroupId = this._targetGroupId;
+        this._targetGroupId = null;
+
         this.setData({ groups, loading: false });
-        if (groups.length === 0) return;
-        const preferredId = this.data.currentGroupId;
-        const stillThere = groups.find((g) => g.id === preferredId);
-        const target = stillThere || groups[0];
+        if (groups.length === 0) {
+          this.setData({ targetGroupUnavailable: !!targetGroupId });
+          return;
+        }
+
+        let target;
+        if (targetGroupId) {
+          target = groups.find((g) => g.id === targetGroupId);
+          this.setData({ targetGroupUnavailable: !target });
+          if (!target) target = groups[0];
+        } else {
+          const preferredId = this.data.currentGroupId;
+          target = groups.find((g) => g.id === preferredId) || groups[0];
+        }
         this._selectGroup(target.id, groupLabel(target), target.is_owner);
       })
       .catch((err) => {
@@ -160,6 +192,7 @@ Page({
   onSwitchGroup(e) {
     const { id, label, owner } = e.currentTarget.dataset;
     if (id === this.data.currentGroupId) return;
+    this.setData({ targetGroupUnavailable: false });
     this._selectGroup(id, label, owner === 'true' || owner === true);
   },
 
@@ -181,6 +214,13 @@ Page({
           }
         });
         this.setData({ grid, loading: false });
+        // Landed here via onShareSchedule's redirect-then-share (see
+        // below) — the url now reflects this group, so it's safe to
+        // finish the share immediately.
+        if (this._autoShare) {
+          this._autoShare = false;
+          this._doShare();
+        }
       })
       .catch((err) => {
         wx.showToast({ title: err.message || '加载课程表失败', icon: 'none' });
@@ -297,6 +337,24 @@ Page({
   },
 
   onShareSchedule() {
+    // WeChat restores this page's exact url (path + query) when someone
+    // later taps "Open Mini Program" under the shared image — confirmed
+    // via debugLog, see onLoad's comment — but mini programs have no
+    // history.replaceState equivalent, so if the url doesn't already
+    // name the group on screen, the only way to fix that is to actually
+    // navigate. redirectTo tears this page down; the reloaded instance
+    // finishes the share itself once its data loads (see _selectGroup's
+    // _autoShare check) rather than trying to continue synchronously here.
+    if (this._urlGroupId !== this.data.currentGroupId) {
+      wx.redirectTo({
+        url: `/pages/school_schedule/school_schedule?role=${this.data.role}&group=${this.data.currentGroupId}&autoShare=1`,
+      });
+      return;
+    }
+    this._doShare();
+  },
+
+  _doShare() {
     this._renderPoster((tempFilePath) => {
       wx.showShareImageMenu({
         path: tempFilePath,

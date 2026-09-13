@@ -6,11 +6,19 @@
 
   <view wx:if="{{loading && groups.length === 0}}" class="empty-state">加载中...</view>
 
+  <view wx:elif="{{groups.length === 0 && targetGroupUnavailable}}" class="empty-state">
+    你没有这个班级课程表的查看权限，请联系创建者通过"邀请加入"分享给你。
+  </view>
+
   <view wx:elif="{{groups.length === 0}}" class="empty-state">
     你还没有任何班级课程表。点击右上角"导入"拍照识别一张课程表，或手动创建一个班级。
   </view>
 
   <block wx:else>
+    <view class="unavailable-notice" wx:if="{{targetGroupUnavailable}}">
+      你没有这个班级课程表的查看权限，以下是你可以查看的班级。
+    </view>
+
     <view class="chip-row" wx:if="{{groups.length > 1}}">
       <view
         wx:for="{{groups}}"

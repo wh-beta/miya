@@ -69,6 +69,16 @@
   padding: 2rpx 14rpx;
 }
 
+.unavailable-notice {
+  background: #FBEBD4;
+  color: #C97F1F;
+  border-radius: 16rpx;
+  padding: 18rpx 22rpx;
+  font-size: 23rpx;
+  line-height: 1.5;
+  margin-bottom: 16rpx;
+}
+
 .empty-state {
   background: #fff;
   border: 1rpx solid #DCE6D6;
