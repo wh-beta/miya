@@ -1,0 +1,29 @@
+<view class="container">
+  <view class="brand">
+    <text class="title">课后助手</text>
+    <text class="tagline">最后一步，填写你的姓名</text>
+  </view>
+
+  <view class="name-section">
+    <input
+      class="field-input"
+      type="nickname"
+      value="{{name}}"
+      bindinput="onNameInput"
+      placeholder="点击填入微信昵称，或手动输入"
+    />
+    <text class="field-hint">点击输入框，键盘上方会出现"使用微信昵称"，点一下即可自动填入</text>
+    <button class="save-btn" bindtap="onSave" loading="{{saving}}" disabled="{{saving}}">保存并查看课程表</button>
+  </view>
+
+  <view wx:if="{{showPrivacyModal}}" class="privacy-overlay">
+    <view class="privacy-box">
+      <text class="privacy-title">隐私授权提示</text>
+      <text class="privacy-text">为了自动填入您的微信昵称，需要您先阅读并同意<text class="privacy-link" bindtap="onOpenPrivacyContract">《隐私保护指引》</text>。不同意也可以手动输入姓名。</text>
+      <view class="privacy-actions">
+        <button size="mini" bindtap="onDisagreePrivacy">暂不同意</button>
+        <button size="mini" type="primary" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="onAgreePrivacy">同意</button>
+      </view>
+    </view>
+  </view>
+</view>

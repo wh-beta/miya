@@ -14,13 +14,18 @@ function _navigateTo(role) {
 
 // A user with no name yet (first login) is sent to account_link to set one
 // before reaching home — that's also where a student first sees their
-// connect_code and a parent first gets to link one. Once a name is on
-// file, the default is to land on home like before — but a caller that's
-// not login.js (e.g. school_schedule.js recovering from a cold launch
-// that landed there directly, see its onLoad) can pass onHasName to stay
-// on its own page instead of being swept off to task_calendar.
-function _checkNameAndRoute(role, onHasName) {
+// connect_code and a parent first gets to link one (account_link is the
+// full relationship-management page, not needed at all for a user who
+// just arrived via a 课程表 link — see quick_setup.js). Once a name is on
+// file, the default is to land on home like before. A caller that's not
+// login.js (e.g. school_schedule.js recovering from a cold launch that
+// landed there directly, see its onLoad) can override either outcome:
+// onHasName to stay on its own page instead of being swept off to
+// task_calendar, onNoName to send a nameless user somewhere lighter than
+// account_link's full connections UI.
+function _checkNameAndRoute(role, onHasName, onNoName) {
   const whenReady = onHasName || (() => _navigateTo(role));
+  const whenNoName = onNoName || (() => wx.reLaunch({ url: `/pages/account_link/account_link?role=${role}&setup=1` }));
   return new Promise((resolve) => {
     wx.request({
       url: `${API_BASE_URL}/users/me`,
@@ -30,7 +35,7 @@ function _checkNameAndRoute(role, onHasName) {
         if (r.statusCode < 400 && r.data && r.data.name) {
           whenReady();
         } else {
-          wx.reLaunch({ url: `/pages/account_link/account_link?role=${role}&setup=1` });
+          whenNoName();
         }
         resolve(_openid);
       },
@@ -52,7 +57,7 @@ function _checkNameAndRoute(role, onHasName) {
 // completes routing itself (via _checkNameAndRoute, see onHasName above)
 // and resolves { needsRole: false } — DEV_MOCK_LOGIN has no persisted
 // account to check against, so it always reports needsRole: true.
-function checkLoginAndRoute(onHasName) {
+function checkLoginAndRoute(onHasName, onNoName) {
   if (DEV_MOCK_LOGIN) {
     return Promise.resolve({ needsRole: true });
   }
@@ -73,7 +78,7 @@ function checkLoginAndRoute(onHasName) {
             if (r.data.is_new) {
               resolve({ needsRole: true });
             } else {
-              _checkNameAndRoute(r.data.role, onHasName).then(() => resolve({ needsRole: false }), reject);
+              _checkNameAndRoute(r.data.role, onHasName, onNoName).then(() => resolve({ needsRole: false }), reject);
             }
           },
           fail: (err) => reject(new Error(err.errMsg || '网络错误')),
@@ -86,8 +91,8 @@ function checkLoginAndRoute(onHasName) {
 
 // Registers a chosen role for the openid checkLoginAndRoute already
 // resolved as new, then completes routing exactly like a returning user
-// (see onHasName above).
-function registerRoleAndRoute(role, onHasName) {
+// (see onHasName/onNoName above).
+function registerRoleAndRoute(role, onHasName, onNoName) {
   if (DEV_MOCK_LOGIN) {
     _openid = '__dev_' + role;
     wx.showToast({ title: '开发模式 (模拟登录)', icon: 'none', duration: 2000 });
@@ -105,7 +110,7 @@ function registerRoleAndRoute(role, onHasName) {
           reject(new Error((r.data && r.data.detail) || '注册失败'));
           return;
         }
-        _checkNameAndRoute(role, onHasName).then(resolve, reject);
+        _checkNameAndRoute(role, onHasName, onNoName).then(resolve, reject);
       },
       fail: (err) => reject(new Error(err.errMsg || '网络错误')),
     });

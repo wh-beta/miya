@@ -2,7 +2,6 @@ const { listTasks, updateTaskStatus, urgeTask, deleteTask, uploadTaskCompletionI
 const { listClasses, updateClassStatus, urgeClass, deleteClass, uploadClassCompletionImage } = require('../../utils/classes.js');
 const { addTaskToPhoneCalendar, addSessionToPhoneCalendar } = require('../../utils/calendar.js');
 const { getMyProfile, listLinkedStudents, acceptInvite } = require('../../utils/auth.js');
-const { acceptScheduleInvite } = require('../../utils/schedule.js');
 const { getProgress } = require('../../utils/progress.js');
 const {
   todayStr,
@@ -112,24 +111,11 @@ Page({
     // Set by login.js when this session started from a parent's group-invite
     // share card.
     const invite = wx.getStorageSync('pendingInvite');
-    if (invite) {
-      wx.removeStorageSync('pendingInvite');
-      acceptInvite(invite)
-        .then((parent) => wx.showToast({ title: `已与${parent.name || '家长'}关联`, icon: 'none' }))
-        .catch((err) => wx.showToast({ title: err.message || '关联失败', icon: 'none' }));
-      return;
-    }
-    // Set by app.js when this session started from scanning the wxacode
-    // embedded in a shared 课程表 poster — covers the cold-launch path
-    // (login had to run first, landing here rather than on
-    // school_schedule); school_schedule.js's own onShow covers the
-    // already-logged-in path where the scan routes straight there.
-    const scheduleCode = wx.getStorageSync('pendingScheduleInviteCode');
-    if (!scheduleCode) return;
-    wx.removeStorageSync('pendingScheduleInviteCode');
-    acceptScheduleInvite(scheduleCode)
-      .then(() => wx.showToast({ title: '已获得课程表查看权限', icon: 'none' }))
-      .catch((err) => wx.showToast({ title: err.message || '课程表授权失败', icon: 'none' }));
+    if (!invite) return;
+    wx.removeStorageSync('pendingInvite');
+    acceptInvite(invite)
+      .then((parent) => wx.showToast({ title: `已与${parent.name || '家长'}关联`, icon: 'none' }))
+      .catch((err) => wx.showToast({ title: err.message || '关联失败', icon: 'none' }));
   },
   refreshAll() {
     const proceed = () => {

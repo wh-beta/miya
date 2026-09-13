@@ -37,52 +37,58 @@ Page({
 
   onLoad(options) {
     this.setData({ role: options.role || 'parent' });
+    this._pendingInvite = options.invite || null;
 
-    // Arrived via a "邀请加入" card share (see onShareAppMessage below) —
-    // a plain query-string path, which WeChat reliably delivers straight
-    // into onLoad(options), unlike a wxacode's scene value (see this
-    // page's git history for why that approach was dropped). A cold
-    // launch has no session yet, so stash the code and route through the
-    // normal role picker; task_calendar.js's consumePending() redeems it
-    // once login completes, mirroring login.js's own options.invite handling.
-    if (options.invite) {
-      if (!getOpenid()) {
-        wx.setStorageSync('pendingScheduleInviteCode', options.invite);
-        wx.reLaunch({ url: '/pages/login/login' });
-        return;
-      }
-      acceptScheduleInvite(options.invite)
-        .then(() => wx.showToast({ title: '已获得课程表查看权限', icon: 'none' }))
-        .catch((err) => wx.showToast({ title: err.message || '课程表授权失败', icon: 'none' }))
-        .then(() => this._loadGroups());
-      return;
-    }
-
-    // No session at all — happens when WeChat's generic "Open Mini
-    // Program" re-entry (shown under an image shared via 一键共享, which
-    // carries no data of its own — unlike 邀请加入's card path above)
-    // restores this exact page from a cold start, bypassing login.js
-    // entirely. Run the same login-check flow every other entry point
-    // goes through, but stay right here once resolved (via the onHasName
-    // override) instead of the default redirect to task_calendar.
+    // Covers two entry paths that can both land here with no session at
+    // all: a "邀请加入" card (see onShareAppMessage below) tapped while
+    // logged out, and WeChat's generic "Open Mini Program" re-entry shown
+    // under a 一键共享 image (which carries no data of its own, unlike the
+    // card — this._pendingInvite just stays null in that case). Either
+    // way, resolve identity right here instead of bouncing through
+    // login.js, which would either land a nameless user on account_link's
+    // full relationship-management page (irrelevant for someone who just
+    // wants to see a schedule — see quick_setup.js) or a fully-set-up user
+    // on task_calendar, losing the whole point of following the link.
     if (!getOpenid()) {
       this._resumeSessionInPlace();
       return;
     }
 
-    this._loadGroups();
+    this._afterIdentityResolved();
+  },
+
+  _afterIdentityResolved() {
+    if (this._pendingInvite) {
+      const code = this._pendingInvite;
+      this._pendingInvite = null;
+      acceptScheduleInvite(code)
+        .then(() => wx.showToast({ title: '已获得课程表查看权限', icon: 'none' }))
+        .catch((err) => wx.showToast({ title: err.message || '课程表授权失败', icon: 'none' }))
+        .then(() => this._loadGroups());
+    } else {
+      this._loadGroups();
+    }
   },
 
   _resumeSessionInPlace() {
     this.setData({ loading: true });
     const stayHere = (role) => {
       this.setData({ role });
-      this._loadGroups();
+      this._afterIdentityResolved();
       return Promise.resolve();
     };
-    checkLoginAndRoute(stayHere)
+    // A nameless user (new account, or an existing one that never
+    // finished setup) goes to quick_setup instead of account_link's full
+    // connections page — just name, then straight back here, carrying the
+    // invite code along so it's still redeemed once identity is complete.
+    const goToQuickSetup = (role) => {
+      const inviteParam = this._pendingInvite ? `&invite=${this._pendingInvite}` : '';
+      wx.reLaunch({ url: `/pages/quick_setup/quick_setup?role=${role}${inviteParam}` });
+      return Promise.resolve();
+    };
+    checkLoginAndRoute(stayHere, goToQuickSetup)
       .then((result) => {
-        if (result.needsRole) this._promptRoleInline(stayHere);
+        if (result.needsRole) this._promptRoleInline(stayHere, goToQuickSetup);
       })
       .catch((err) => {
         this.setData({ loading: false });
@@ -92,12 +98,12 @@ Page({
 
   // The same role popup login.js shows for a genuinely new account — see
   // its _promptRole for why wx.showActionSheet, not a custom page.
-  _promptRoleInline(stayHere) {
+  _promptRoleInline(stayHere, goToQuickSetup) {
     wx.showActionSheet({
       itemList: ['我是家长', '我是学生'],
       success: (res) => {
         const role = res.tapIndex === 0 ? 'parent' : 'student';
-        registerRoleAndRoute(role, stayHere).catch((err) => {
+        registerRoleAndRoute(role, stayHere, goToQuickSetup).catch((err) => {
           this.setData({ loading: false });
           wx.showToast({ title: err.message || '登录失败，请重试', icon: 'none' });
         });
