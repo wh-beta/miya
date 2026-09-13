@@ -96,6 +96,11 @@ Page({
     const params = [];
     if (role) params.push(`role=${role}`);
     if (this._pendingInvite) params.push(`invite=${this._pendingInvite}`);
+    // Confirmed via debugLog on a real device: without this, a brand-new
+    // user arriving via a group-targeted 一键共享 link (?role=X&group=Y)
+    // loses the target group entirely once routed through quick_setup —
+    // they land back on school_schedule with no group specified at all.
+    if (this._targetGroupId) params.push(`group=${this._targetGroupId}`);
     wx.reLaunch({ url: `/pages/quick_setup/quick_setup${params.length ? '?' + params.join('&') : ''}` });
     return Promise.resolve();
   },

@@ -9,6 +9,7 @@
 // onNoName override and school_schedule.js's onLoad for how someone ends
 // up here instead of account_link/login.js's popup.
 const { getOpenid, registerRole, setMyName, claimVirtualStudentAndRoute } = require('../../utils/auth.js');
+const { debugLog } = require('../../utils/debugLog.js');
 
 Page({
   data: {
@@ -20,7 +21,13 @@ Page({
 
   onLoad(options) {
     this._invite = options.invite || null;
+    // Carried through from school_schedule.js's _goToQuickSetup — a
+    // group-targeted 一键共享 link's target group, forwarded back on save
+    // so a brand-new user still lands on the right class, not just the
+    // right page. See school_schedule.js's _goToQuickSetup for why.
+    this._group = options.group || null;
     if (options.role) this.setData({ role: options.role });
+    debugLog('quick_setup_onLoad', { options, hadOpenidAlready: !!getOpenid() });
     this._checkPrivacyAuth();
   },
 
@@ -56,7 +63,8 @@ Page({
     this.setData({ saving: true });
     const goBack = () => {
       const inviteParam = this._invite ? `&invite=${this._invite}` : '';
-      wx.reLaunch({ url: `/pages/school_schedule/school_schedule?role=student${inviteParam}` });
+      const groupParam = this._group ? `&group=${this._group}` : '';
+      wx.reLaunch({ url: `/pages/school_schedule/school_schedule?role=student${inviteParam}${groupParam}` });
       return Promise.resolve();
     };
     claimVirtualStudentAndRoute(code, goBack).catch((err) => {
@@ -120,7 +128,9 @@ Page({
       .then(() => setMyName(name))
       .then(() => {
         const inviteParam = this._invite ? `&invite=${this._invite}` : '';
-        wx.reLaunch({ url: `/pages/school_schedule/school_schedule?role=${role}${inviteParam}` });
+        const groupParam = this._group ? `&group=${this._group}` : '';
+        debugLog('quick_setup_onSave', { role, invite: this._invite, group: this._group });
+        wx.reLaunch({ url: `/pages/school_schedule/school_schedule?role=${role}${inviteParam}${groupParam}` });
       })
       .catch((err) => {
         this.setData({ saving: false });
