@@ -199,7 +199,7 @@ function drawSchedulePoster(ctx, width, height, data) {
   ctx.fillStyle = '#8B978C';
   ctx.font = '20px sans-serif';
   ctx.fillText(
-    `生成于 ${today.getFullYear()}-${_pad2(today.getMonth() + 1)}-${_pad2(today.getDate())}`,
+    `更新日期：${today.getFullYear()}-${_pad2(today.getMonth() + 1)}-${_pad2(today.getDate())}`,
     S_PAD,
     y + 42,
   );
