@@ -57,14 +57,46 @@ Page({
     this._afterIdentityResolved();
   },
 
+  // Anything missing — role, name, or both — goes to quick_setup (a real
+  // page, not login.js's action-sheet popup) instead of account_link's
+  // full connections page, carrying along whatever's already known (role,
+  // if resolved) plus the invite code so it's still redeemed once
+  // identity is complete.
+  _goToQuickSetup(role) {
+    const params = [];
+    if (role) params.push(`role=${role}`);
+    if (this._pendingInvite) params.push(`invite=${this._pendingInvite}`);
+    wx.reLaunch({ url: `/pages/quick_setup/quick_setup${params.length ? '?' + params.join('&') : ''}` });
+    return Promise.resolve();
+  },
+
   _afterIdentityResolved() {
     if (this._pendingInvite) {
       const code = this._pendingInvite;
       this._pendingInvite = null;
-      acceptScheduleInvite(code)
-        .then(() => wx.showToast({ title: '已获得课程表查看权限', icon: 'none' }))
-        .catch((err) => wx.showToast({ title: err.message || '课程表授权失败', icon: 'none' }))
-        .then(() => this._loadGroups());
+      acceptScheduleInvite(code).then(
+        () => {
+          wx.showToast({ title: '已获得课程表查看权限', icon: 'none' });
+          this._loadGroups();
+        },
+        (err) => {
+          if (err.statusCode === 404) {
+            // getOpenid() was non-null but stale — set by an earlier
+            // wx.login()/checkLoginAndRoute call that resolved is_new:
+            // true, then abandoned before quick_setup ever finished
+            // registering it (e.g. backgrounded mid-setup, or the app
+            // stayed open and they navigated straight back here via 目录
+            // instead of finishing that flow). Same recovery as a
+            // completely session-less cold launch — quick_setup silently
+            // (re-)registers whatever's missing and returns here, no
+            // error shown at all.
+            this._goToQuickSetup(null);
+            return;
+          }
+          wx.showToast({ title: err.message || '课程表授权失败', icon: 'none' });
+          this._loadGroups();
+        },
+      );
     } else {
       this._loadGroups();
     }
@@ -77,21 +109,9 @@ Page({
       this._afterIdentityResolved();
       return Promise.resolve();
     };
-    // Anything missing — role, name, or both — goes to quick_setup (a
-    // real page, not login.js's action-sheet popup) instead of
-    // account_link's full connections page, carrying along whatever's
-    // already known (role, if resolved) plus the invite code so it's
-    // still redeemed once identity is complete.
-    const goToQuickSetup = (role) => {
-      const params = [];
-      if (role) params.push(`role=${role}`);
-      if (this._pendingInvite) params.push(`invite=${this._pendingInvite}`);
-      wx.reLaunch({ url: `/pages/quick_setup/quick_setup${params.length ? '?' + params.join('&') : ''}` });
-      return Promise.resolve();
-    };
-    checkLoginAndRoute(stayHere, goToQuickSetup)
+    checkLoginAndRoute(stayHere, (role) => this._goToQuickSetup(role))
       .then((result) => {
-        if (result.needsRole) goToQuickSetup(null);
+        if (result.needsRole) this._goToQuickSetup(null);
       })
       .catch((err) => {
         this.setData({ loading: false });
@@ -119,6 +139,13 @@ Page({
         this._selectGroup(target.id, groupLabel(target), target.is_owner);
       })
       .catch((err) => {
+        // See _afterIdentityResolved's 404 branch — same stale-but-unregistered
+        // openid recovery, just reached via the "already had a session
+        // this page load" path instead of the "just resumed one" path.
+        if (err.statusCode === 404) {
+          this._goToQuickSetup(null);
+          return;
+        }
         wx.showToast({ title: err.message || '加载失败', icon: 'none' });
         this.setData({ loading: false });
       });

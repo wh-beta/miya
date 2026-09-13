@@ -15,7 +15,15 @@ function listScheduleGroups(q) {
       url: `${API_BASE_URL}/schedule_groups`,
       method: 'GET',
       data,
-      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '获取失败'))),
+      success: (res) => {
+        if (res.statusCode < 400) {
+          resolve(res.data);
+        } else {
+          const err = new Error((res.data && res.data.detail) || '获取失败');
+          err.statusCode = res.statusCode;
+          reject(err);
+        }
+      },
       fail: reject,
     });
   });
@@ -27,7 +35,15 @@ function listMyScheduleGroups() {
       url: `${API_BASE_URL}/schedule_groups/mine`,
       method: 'GET',
       data: { openid: getOpenid() },
-      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '获取失败'))),
+      success: (res) => {
+        if (res.statusCode < 400) {
+          resolve(res.data);
+        } else {
+          const err = new Error((res.data && res.data.detail) || '获取失败');
+          err.statusCode = res.statusCode;
+          reject(err);
+        }
+      },
       fail: reject,
     });
   });
@@ -115,7 +131,15 @@ function getGroupInviteCode(groupId, regenerate) {
       url: `${API_BASE_URL}/schedule_groups/${groupId}/invite_code`,
       method: 'GET',
       data,
-      success: (res) => (res.statusCode < 400 ? resolve(res.data.code) : reject(new Error((res.data && res.data.detail) || '获取邀请码失败'))),
+      success: (res) => {
+        if (res.statusCode < 400) {
+          resolve(res.data.code);
+          return;
+        }
+        const err = new Error((res.data && res.data.detail) || '获取邀请码失败');
+        err.statusCode = res.statusCode;
+        reject(err);
+      },
       fail: reject,
     });
   });
@@ -127,7 +151,15 @@ function acceptScheduleInvite(code) {
       url: `${API_BASE_URL}/schedule_groups/accept_invite`,
       method: 'POST',
       data: { openid: getOpenid(), code },
-      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '兑换邀请码失败'))),
+      success: (res) => {
+        if (res.statusCode < 400) {
+          resolve(res.data);
+        } else {
+          const err = new Error((res.data && res.data.detail) || '兑换邀请码失败');
+          err.statusCode = res.statusCode;
+          reject(err);
+        }
+      },
       fail: reject,
     });
   });
