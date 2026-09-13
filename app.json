@@ -27,6 +27,9 @@
   "permission": {
     "scope.record": {
       "desc": "用于录制语音以自动创建作业提醒"
+    },
+    "scope.writePhotosAlbum": {
+      "desc": "用于将课程表图片保存到相册"
     }
   },
   "supportedMaterials": [

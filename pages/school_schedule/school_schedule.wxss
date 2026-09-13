@@ -120,6 +120,11 @@
   background: #DCF0EA;
 }
 
+.save-image-btn {
+  color: #5B6A5F;
+  background: #EEF4E9;
+}
+
 .share-btn {
   color: #146E64;
   background: #DCF0EA;

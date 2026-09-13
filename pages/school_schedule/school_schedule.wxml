@@ -36,6 +36,7 @@
       </block>
       <button wx:if="{{canEdit && !editing}}" size="mini" class="action-btn regen-btn" bindtap="onRegenerateInvite">🔄 重置邀请码</button>
       <button wx:if="{{canEdit && !editing}}" size="mini" class="action-btn invite-btn" open-type="share">🔗 邀请加入</button>
+      <button size="mini" class="action-btn save-image-btn" bindtap="onSaveImage">💾 保存到相册</button>
       <button size="mini" class="action-btn share-btn" bindtap="onShareSchedule">📤 一键共享</button>
     </view>
 

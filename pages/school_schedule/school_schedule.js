@@ -182,7 +182,11 @@ Page({
     });
   },
 
-  onShareSchedule() {
+  // Renders the current grid to the offscreen canvas and hands the
+  // resulting temp file path to `onDone` — shared by onShareSchedule and
+  // onSaveImage so the two only differ in what they do with the image
+  // (wx.showShareImageMenu vs wx.saveImageToPhotosAlbum).
+  _renderPoster(onDone) {
     const height = computeSchedulePosterHeight(PERIOD_COUNT);
     wx.showLoading({ title: '生成中...' });
     this.setData({ shareCanvasHeight: height }, () => {
@@ -209,10 +213,7 @@ Page({
             fileType: 'png',
             success: (r) => {
               wx.hideLoading();
-              wx.showShareImageMenu({
-                path: r.tempFilePath,
-                fail: (err) => wx.showToast({ title: err.errMsg || '分享失败', icon: 'none' }),
-              });
+              onDone(r.tempFilePath);
             },
             fail: () => {
               wx.hideLoading();
@@ -220,6 +221,41 @@ Page({
             },
           });
         });
+      });
+    });
+  },
+
+  onShareSchedule() {
+    this._renderPoster((tempFilePath) => {
+      wx.showShareImageMenu({
+        path: tempFilePath,
+        fail: (err) => wx.showToast({ title: err.errMsg || '分享失败', icon: 'none' }),
+      });
+    });
+  },
+
+  onSaveImage() {
+    this._renderPoster((tempFilePath) => {
+      wx.saveImageToPhotosAlbum({
+        filePath: tempFilePath,
+        success: () => wx.showToast({ title: '已保存到相册' }),
+        fail: (err) => {
+          // "auth deny" covers both a fresh denial and a previously
+          // remembered one — either way WeChat won't re-prompt on its
+          // own, so send the user to Settings to flip it on manually.
+          if ((err.errMsg || '').indexOf('auth deny') !== -1) {
+            wx.showModal({
+              title: '需要相册权限',
+              content: '请在设置中允许"保存到相册"权限后重试。',
+              confirmText: '去设置',
+              success: (res) => {
+                if (res.confirm) wx.openSetting();
+              },
+            });
+          } else {
+            wx.showToast({ title: err.errMsg || '保存失败', icon: 'none' });
+          }
+        },
       });
     });
   },
