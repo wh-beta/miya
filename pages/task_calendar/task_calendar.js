@@ -496,7 +496,12 @@ Page({
                 wx.hideLoading();
                 wx.showShareImageMenu({
                   path: r.tempFilePath,
-                  fail: (err) => wx.showToast({ title: err.errMsg || '分享失败', icon: 'none' }),
+                  // fail also fires when the user just dismisses the native
+                  // share sheet without picking anything — not an error.
+                  fail: (err) => {
+                    if ((err.errMsg || '').indexOf('cancel') !== -1) return;
+                    wx.showToast({ title: err.errMsg || '分享失败', icon: 'none' });
+                  },
                 });
               },
               fail: () => {
