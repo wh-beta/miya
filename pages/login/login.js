@@ -1,4 +1,4 @@
-const { checkLoginAndRoute, registerRoleAndRoute } = require('../../utils/auth.js');
+const { checkLoginAndRoute, registerRoleAndRoute, claimVirtualStudentAndRoute } = require('../../utils/auth.js');
 const { DEV_MOCK_LOGIN } = require('../../utils/config.js');
 
 Page({
@@ -59,13 +59,49 @@ Page({
   _promptRole() {
     wx.showActionSheet({
       itemList: ['我是家长', '我是学生'],
-      success: (res) => this._register(res.tapIndex === 0 ? 'parent' : 'student'),
+      success: (res) => {
+        if (res.tapIndex === 1) {
+          this._offerClaim();
+        } else {
+          this._register('parent');
+        }
+      },
       fail: () => {
         // Dismissed without choosing — a role is required to proceed, so
         // fall back to the manual buttons rather than leaving the screen
         // stuck with nothing to tap.
         this.setData({ showManualPicker: true });
       },
+    });
+  },
+
+  // A student may have started out virtual (added by a parent, no WeChat
+  // account of their own — see account_link.js's "添加学生") and now have
+  // a real account to take that same identity over with, using its
+  // connect_code. Optional — leaving it blank just registers a fresh
+  // student account like before.
+  _offerClaim() {
+    wx.showModal({
+      title: '连接码（可选）',
+      editable: true,
+      placeholderText: '如果家长已经为你创建过账号，输入连接码继续使用；没有则留空',
+      success: (res) => {
+        const code = (res.content || '').trim();
+        if (res.confirm && code) {
+          this._claim(code);
+        } else {
+          this._register('student');
+        }
+      },
+      fail: () => this._register('student'),
+    });
+  },
+
+  _claim(code) {
+    this.setData({ checking: true, showManualPicker: false });
+    claimVirtualStudentAndRoute(code).catch((err) => {
+      this.setData({ checking: false, showManualPicker: true });
+      wx.showModal({ title: '认领失败', content: err.message || '未知错误，可以重新选择身份', showCancel: false });
     });
   },
 

@@ -117,6 +117,32 @@ function registerRoleAndRoute(role, onHasName, onNoName) {
   });
 }
 
+// Lets a student who started out virtual (no WeChat account of their own —
+// see addVirtualStudent) take over that same record once they get a real
+// WeChat account, using the student's own connect_code. Requires _openid
+// to already be set (a prior wx.login()/checkLoginAndRoute call) — bare
+// version with no routing, for a caller that wants the raw result.
+function claimVirtualStudent(code) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/users/me/claim_virtual`,
+      method: 'POST',
+      data: { openid: _openid, code },
+      success: (r) => (r.statusCode < 400 ? resolve(r.data) : reject(new Error((r.data && r.data.detail) || '认领失败'))),
+      fail: (err) => reject(new Error(err.errMsg || '网络错误')),
+    });
+  });
+}
+
+// Claims, then completes routing exactly like a returning user (see
+// onHasName/onNoName above) — a claimed account already has a name (set
+// when it was created as virtual), so onHasName is the expected path, but
+// routing through _checkNameAndRoute anyway keeps this consistent with
+// every other entry point rather than assuming.
+function claimVirtualStudentAndRoute(code, onHasName, onNoName) {
+  return claimVirtualStudent(code).then((user) => _checkNameAndRoute(user.role, onHasName, onNoName));
+}
+
 // Bare registration, no routing side effects — for a caller (quick_setup.js)
 // that owns its own linear flow (pick role -> fill name -> save both ->
 // navigate once) rather than the auto-navigate chain registerRoleAndRoute
@@ -244,6 +270,8 @@ module.exports = {
   checkLoginAndRoute,
   registerRoleAndRoute,
   registerRole,
+  claimVirtualStudent,
+  claimVirtualStudentAndRoute,
   getOpenid,
   getMyProfile,
   setMyName,

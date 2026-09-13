@@ -8,7 +8,7 @@
 // middle of joining, not from a parent-child link. See utils/auth.js's
 // onNoName override and school_schedule.js's onLoad for how someone ends
 // up here instead of account_link/login.js's popup.
-const { getOpenid, registerRole, setMyName } = require('../../utils/auth.js');
+const { getOpenid, registerRole, setMyName, claimVirtualStudentAndRoute } = require('../../utils/auth.js');
 
 Page({
   data: {
@@ -29,6 +29,40 @@ Page({
   },
   onChangeRole() {
     this.setData({ role: '' });
+  },
+
+  // A student may have started out virtual (added by a parent, no WeChat
+  // account of their own — see account_link.js's "添加学生") and now have
+  // a real account to take that same identity over with, using its
+  // connect_code — skips the name step entirely (a virtual student
+  // already has one) and goes straight back to 课程表.
+  onClaimCode() {
+    wx.showModal({
+      title: '输入连接码',
+      editable: true,
+      placeholderText: '家长已经为你创建过账号时使用的连接码',
+      success: (res) => {
+        const code = (res.content || '').trim();
+        if (res.confirm && code) this._claim(code);
+      },
+    });
+  },
+
+  _claim(code) {
+    if (!getOpenid()) {
+      wx.showToast({ title: '登录状态异常，请重新进入', icon: 'none' });
+      return;
+    }
+    this.setData({ saving: true });
+    const goBack = () => {
+      const inviteParam = this._invite ? `&invite=${this._invite}` : '';
+      wx.reLaunch({ url: `/pages/school_schedule/school_schedule?role=student${inviteParam}` });
+      return Promise.resolve();
+    };
+    claimVirtualStudentAndRoute(code, goBack).catch((err) => {
+      this.setData({ saving: false });
+      wx.showModal({ title: '认领失败', content: err.message || '未知错误', showCancel: false });
+    });
   },
 
   // Same check as account_link.js — the nickname-fill keyboard suggestion

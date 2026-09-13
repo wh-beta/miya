@@ -36,6 +36,13 @@
   gap: 20rpx;
 }
 
+.claim-link {
+  margin-top: 8rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: #8B978C;
+}
+
 .role-btn {
   width: 100%;
   background: #DCF0EA;

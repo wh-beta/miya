@@ -8,6 +8,7 @@
   <view class="role-list" wx:if="{{!role}}">
     <button class="role-btn" data-role="parent" bindtap="onPickRole">家长</button>
     <button class="role-btn" data-role="student" bindtap="onPickRole">学生</button>
+    <text class="claim-link" bindtap="onClaimCode">家长已经为我创建过账号？输入连接码</text>
   </view>
 
   <view class="name-section" wx:else>
