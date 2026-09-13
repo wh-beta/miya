@@ -1,4 +1,4 @@
-const { getOpenid } = require('../../utils/auth.js');
+const { getOpenid, checkLoginAndRoute, registerRoleAndRoute } = require('../../utils/auth.js');
 const {
   listMyScheduleGroups,
   getGroupSchedule,
@@ -58,7 +58,55 @@ Page({
       return;
     }
 
+    // No session at all — happens when WeChat's generic "Open Mini
+    // Program" re-entry (shown under an image shared via 一键共享, which
+    // carries no data of its own — unlike 邀请加入's card path above)
+    // restores this exact page from a cold start, bypassing login.js
+    // entirely. Run the same login-check flow every other entry point
+    // goes through, but stay right here once resolved (via the onHasName
+    // override) instead of the default redirect to task_calendar.
+    if (!getOpenid()) {
+      this._resumeSessionInPlace();
+      return;
+    }
+
     this._loadGroups();
+  },
+
+  _resumeSessionInPlace() {
+    this.setData({ loading: true });
+    const stayHere = (role) => {
+      this.setData({ role });
+      this._loadGroups();
+      return Promise.resolve();
+    };
+    checkLoginAndRoute(stayHere)
+      .then((result) => {
+        if (result.needsRole) this._promptRoleInline(stayHere);
+      })
+      .catch((err) => {
+        this.setData({ loading: false });
+        wx.showToast({ title: err.message || '登录失败，请重试', icon: 'none' });
+      });
+  },
+
+  // The same role popup login.js shows for a genuinely new account — see
+  // its _promptRole for why wx.showActionSheet, not a custom page.
+  _promptRoleInline(stayHere) {
+    wx.showActionSheet({
+      itemList: ['我是家长', '我是学生'],
+      success: (res) => {
+        const role = res.tapIndex === 0 ? 'parent' : 'student';
+        registerRoleAndRoute(role, stayHere).catch((err) => {
+          this.setData({ loading: false });
+          wx.showToast({ title: err.message || '登录失败，请重试', icon: 'none' });
+        });
+      },
+      fail: () => {
+        this.setData({ loading: false });
+        wx.showToast({ title: '需要选择身份才能查看课程表', icon: 'none' });
+      },
+    });
   },
 
   onShow() {
