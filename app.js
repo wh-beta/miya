@@ -6,6 +6,8 @@
 // before any page has a chance to run, is the robust capture point;
 // task_input.js's _consumePendingMaterial reads it back out of storage once
 // a session/role is established.
+const { debugLog } = require('./utils/debugLog.js');
+
 function capturePendingMaterial(options) {
   const launchOptions = options || (wx.getLaunchOptionsSync && wx.getLaunchOptionsSync());
   const materials = launchOptions && launchOptions.forwardMaterials;
@@ -20,6 +22,7 @@ App({
   onLaunch(options) {
     // Entry point; routing to the parent/student home page happens via app.json's pages list.
     capturePendingMaterial(options);
+    debugLog('app_onLaunch', { options, sync: wx.getLaunchOptionsSync && wx.getLaunchOptionsSync() });
   },
   // If the mini-program was already running/suspended in the background
   // rather than being freshly cold-started, onLaunch won't fire again for
@@ -28,5 +31,6 @@ App({
   // WeChat treats a given "打开方式" tap as a cold start or a resume.
   onShow(options) {
     capturePendingMaterial(options);
+    debugLog('app_onShow', { options, sync: wx.getLaunchOptionsSync && wx.getLaunchOptionsSync() });
   },
 });

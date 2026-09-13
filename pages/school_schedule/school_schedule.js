@@ -1,4 +1,5 @@
 const { getOpenid, checkLoginAndRoute } = require('../../utils/auth.js');
+const { debugLog } = require('../../utils/debugLog.js');
 const {
   listMyScheduleGroups,
   getGroupSchedule,
@@ -38,6 +39,11 @@ Page({
   onLoad(options) {
     this.setData({ role: options.role || 'parent' });
     this._pendingInvite = options.invite || null;
+    debugLog('school_schedule_onLoad', {
+      options,
+      hadOpenidAlready: !!getOpenid(),
+      sync: wx.getLaunchOptionsSync && wx.getLaunchOptionsSync(),
+    });
 
     // Covers two entry paths that can both land here with no session at
     // all: a "邀请加入" card (see onShareAppMessage below) tapped while

@@ -1,10 +1,12 @@
 const { checkLoginAndRoute, registerRoleAndRoute, claimVirtualStudentAndRoute } = require('../../utils/auth.js');
 const { DEV_MOCK_LOGIN } = require('../../utils/config.js');
+const { debugLog } = require('../../utils/debugLog.js');
 
 Page({
   data: { checking: true, showManualPicker: false },
 
   onLoad(options) {
+    debugLog('login_onLoad', { options, sync: wx.getLaunchOptionsSync && wx.getLaunchOptionsSync() });
     // Arrived via a parent's "邀请学生加入" share card (see
     // account_link.js's onShareAppMessage) — stash the invite code for
     // task_calendar to consume once login finishes, and skip straight
