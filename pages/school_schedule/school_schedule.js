@@ -1,4 +1,4 @@
-const { getOpenid, checkLoginAndRoute } = require('../../utils/auth.js');
+const { getOpenid, checkLoginAndRoute, getMyProfile, updateMyRole } = require('../../utils/auth.js');
 const { debugLog } = require('../../utils/debugLog.js');
 const {
   listMyScheduleGroups,
@@ -6,6 +6,7 @@ const {
   saveGroupSchedule,
   getGroupInviteCode,
   acceptScheduleInvite,
+  joinScheduleGroup,
 } = require('../../utils/schedule.js');
 const { SCHEDULE_WIDTH, computeSchedulePosterHeight, drawSchedulePoster } = require('../../utils/posterCanvas.js');
 
@@ -114,6 +115,7 @@ Page({
         () => {
           wx.showToast({ title: '已获得课程表查看权限', icon: 'none' });
           this._loadGroups();
+          this._maybePromptRole();
         },
         (err) => {
           if (err.statusCode === 404) {
@@ -133,9 +135,45 @@ Page({
           this._loadGroups();
         },
       );
+    } else if (this._targetGroupId) {
+      // 一键共享 entry: the url carries a specific ?group= but, unlike an
+      // invite code, that alone grants nothing server-side — request
+      // access directly (see joinScheduleGroup's docstring) before
+      // loading, so a brand-new viewer doesn't land on "你没有这个班级
+      // 课程表的查看权限" for a link that was legitimately shared with them.
+      joinScheduleGroup(this._targetGroupId)
+        .then(() => this._maybePromptRole())
+        .catch(() => {}) // group might not exist, or access already existed some other way — _loadGroups below shows "unavailable" if truly inaccessible
+        .then(() => this._loadGroups());
     } else {
       this._loadGroups();
     }
+  },
+
+  // A brand-new visitor who just landed directly on a specific group's
+  // content (via 邀请加入 or 一键共享) needs a role for the backend's
+  // access-granting side effects to actually apply (the single-group-for-
+  // student constraint, and syncing the student's own linked parents onto
+  // the same group) — unlike everywhere else in the app (see
+  // utils/auth.js's checkLoginAndRoute), this is the one moment worth
+  // actually asking, since silently leaving role unset here means those
+  // side effects just never happen. Non-blocking: the schedule itself is
+  // already visible underneath regardless of whether this gets answered.
+  _maybePromptRole() {
+    getMyProfile()
+      .then((profile) => {
+        if (profile.role) return;
+        wx.showActionSheet({
+          itemList: ['我是家长', '我是学生'],
+          success: (res) => {
+            const role = res.tapIndex === 0 ? 'parent' : 'student';
+            updateMyRole(role)
+              .then(() => this.setData({ role }))
+              .catch((err) => wx.showToast({ title: err.message || '设置失败', icon: 'none' }));
+          },
+        });
+      })
+      .catch(() => {});
   },
 
   _resumeSessionInPlace() {

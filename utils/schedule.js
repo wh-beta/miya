@@ -165,6 +165,31 @@ function acceptScheduleInvite(code) {
   });
 }
 
+// Grants access directly by group_id, no invite code — see
+// join_schedule_group's docstring in main.py for why this exists
+// alongside acceptScheduleInvite: a 一键共享 (image-share) link only ever
+// carries the raw ?group= id, never a real invite code, and previously
+// granted nothing at all on its own.
+function joinScheduleGroup(groupId) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/schedule_groups/${groupId}/join`,
+      method: 'POST',
+      data: { openid: getOpenid() },
+      success: (res) => {
+        if (res.statusCode < 400) {
+          resolve(res.data);
+        } else {
+          const err = new Error((res.data && res.data.detail) || '加入失败');
+          err.statusCode = res.statusCode;
+          reject(err);
+        }
+      },
+      fail: reject,
+    });
+  });
+}
+
 // Uploads a photo of a printed weekly schedule for vision-LLM extraction
 // into draft {day_of_week, period, subject} cells — no OCR+regex fallback
 // (see weekly_schedule_vision.py), so a failure here means "try again" or
@@ -199,5 +224,6 @@ module.exports = {
   saveGroupSchedule,
   getGroupInviteCode,
   acceptScheduleInvite,
+  joinScheduleGroup,
   uploadWeeklyScheduleImage,
 };
