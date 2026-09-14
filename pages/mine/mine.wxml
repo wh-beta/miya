@@ -1,0 +1,42 @@
+<view class="page">
+  <view class="header">
+    <text class="title">我的</text>
+  </view>
+
+  <view class="menu-list">
+    <view class="menu-row" data-page="relations/relations" bindtap="onGo">
+      <text class="menu-label">关系列表</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view wx:if="{{role === 'parent'}}" class="menu-row" data-page="urging/urging" bindtap="onGo">
+      <text class="menu-label">我的催办</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-row" data-page="account_link/account_link" bindtap="onGo">
+      <text class="menu-label">账号与绑定</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-row" data-page="quick_setup/quick_setup" bindtap="onGo">
+      <text class="menu-label">姓名设置</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-row" data-page="role_setup/role_setup" bindtap="onGo">
+      <text class="menu-label">身份设置</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-row" data-page="reminder_settings/reminder_settings" bindtap="onGo">
+      <text class="menu-label">设置提醒</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-row" data-page="password_settings/password_settings" bindtap="onGo">
+      <text class="menu-label">登录密码</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-row" data-page="switch_account/switch_account" bindtap="onGo">
+      <text class="menu-label">切换账号</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
+  <bottom-nav active="mine" role="{{role}}" />
+</view>

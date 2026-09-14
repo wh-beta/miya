@@ -20,7 +20,8 @@
     "pages/reminder_settings/reminder_settings",
     "pages/password_settings/password_settings",
     "pages/switch_account/switch_account",
-    "pages/role_setup/role_setup"
+    "pages/role_setup/role_setup",
+    "pages/mine/mine"
   ],
   "window": {
     "navigationBarTitleText": "课后助手"

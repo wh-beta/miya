@@ -24,36 +24,13 @@ Component({
       wx.redirectTo({ url: `/pages/growth/growth?role=${this.data.role}` });
     },
     onTapMine() {
-      // 我的催办 is parent-only (urging is already a parent-only action
-      // everywhere else in the app); everything else here applies to both
-      // roles. Exclude whichever sub-page we're already on — showing it as
-      // a choice in a menu popped up over itself just looks broken (see the
-      // screenshot report: 我的催办 visible behind its own menu item). Still
-      // always show the sheet (even down to one real item + the system's
-      // own 取消) rather than silently auto-navigating — a tap jumping you
-      // to another page with no menu shown reads as broken too.
-      const options = [
-        { label: '关系列表', page: 'relations/relations', active: 'mine-relations' },
-        ...(this.data.role === 'parent' ? [{ label: '我的催办', page: 'urging/urging', active: 'mine-urging' }] : []),
-        { label: '账号与绑定', page: 'account_link/account_link', active: 'mine-account' },
-        // checkLoginAndRoute silently registers every brand-new visitor
-        // with a placeholder name and no role at all (see utils/auth.js) —
-        // these are where they set/review each. Split into two pages, not
-        // one, because they now follow different rules: role locks once a
-        // connection exists (see role_setup.js), name never does.
-        { label: '姓名设置', page: 'quick_setup/quick_setup', active: 'mine-name' },
-        { label: '身份设置', page: 'role_setup/role_setup', active: 'mine-role' },
-        { label: '设置提醒', page: 'reminder_settings/reminder_settings', active: 'mine-reminder' },
-        { label: '登录密码', page: 'password_settings/password_settings', active: 'mine-password' },
-        { label: '切换账号', page: 'switch_account/switch_account', active: 'mine-switch' },
-      ].filter((o) => o.active !== this.data.active);
-
-      wx.showActionSheet({
-        itemList: options.map((o) => o.label),
-        success: (res) => {
-          wx.redirectTo({ url: `/pages/${options[res.tapIndex].page}?role=${this.data.role}` });
-        },
-      });
+      // A real page (pages/mine/mine), not wx.showActionSheet — that had
+      // grown to 7-8 items (关系列表/我的催办/账号与绑定/姓名设置/身份设置/
+      // 设置提醒/登录密码/切换账号) past wx.showActionSheet's hard 6-item
+      // limit, which made the sheet silently fail to open at all: tapping
+      // 我的 did nothing, indistinguishable from a dead button.
+      if (this.data.active === 'mine') return;
+      wx.redirectTo({ url: `/pages/mine/mine?role=${this.data.role}` });
     },
   },
 });
