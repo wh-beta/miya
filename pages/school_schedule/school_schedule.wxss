@@ -130,6 +130,11 @@
   background: #DCF0EA;
 }
 
+.delete-group-btn {
+  color: #D8503C;
+  background: #FCE4DF;
+}
+
 .save-image-btn {
   color: #5B6A5F;
   background: #EEF4E9;

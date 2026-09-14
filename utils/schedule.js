@@ -79,6 +79,24 @@ function createScheduleGroup({ school, grade, className }) {
   });
 }
 
+// Owner-only, permanent — see delete_schedule_group's docstring in
+// main.py for exactly what cascades with it. openid goes directly in the
+// url's query string (not a `data` object) — matching unlinkStudent's
+// existing DELETE pattern below, and deliberately not the shape
+// joinScheduleGroup got wrong (a bare backend param binds to the query
+// string by default, but wx.request's `data` becomes the body on
+// non-GET methods).
+function deleteScheduleGroup(groupId) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/schedule_groups/${groupId}?openid=${encodeURIComponent(getOpenid())}`,
+      method: 'DELETE',
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '删除失败'))),
+      fail: reject,
+    });
+  });
+}
+
 function getGroupSchedule(groupId) {
   return new Promise((resolve, reject) => {
     wx.request({
@@ -225,5 +243,6 @@ module.exports = {
   getGroupInviteCode,
   acceptScheduleInvite,
   joinScheduleGroup,
+  deleteScheduleGroup,
   uploadWeeklyScheduleImage,
 };

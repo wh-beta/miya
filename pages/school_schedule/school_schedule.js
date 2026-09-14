@@ -7,6 +7,7 @@ const {
   getGroupInviteCode,
   acceptScheduleInvite,
   joinScheduleGroup,
+  deleteScheduleGroup,
 } = require('../../utils/schedule.js');
 const { SCHEDULE_WIDTH, computeSchedulePosterHeight, drawSchedulePoster } = require('../../utils/posterCanvas.js');
 
@@ -351,6 +352,36 @@ Page({
             wx.showToast({ title: '已重新生成', icon: 'none' });
           })
           .catch((err) => wx.showToast({ title: err.message || '操作失败', icon: 'none' }));
+      },
+    });
+  },
+
+  // Owner-only, permanent — see delete_schedule_group's docstring in
+  // main.py for exactly what this cascades (the weekly schedule itself,
+  // every viewer's access, the invite code). Anyone else currently
+  // viewing this group loses access immediately, with no separate notice
+  // to them — the confirmation here is the only warning.
+  onDeleteGroup() {
+    if (!this.data.canEdit || !this.data.currentGroupId) return;
+    const label = this.data.currentGroupLabel;
+    wx.showModal({
+      title: '删除班级课程表？',
+      content: `将永久删除"${label}"的课程表，所有已获得查看权限的人都会立即失去访问。此操作无法撤销。`,
+      confirmText: '删除',
+      confirmColor: '#D8503C',
+      success: (res) => {
+        if (!res.confirm) return;
+        wx.showLoading({ title: '删除中...' });
+        deleteScheduleGroup(this.data.currentGroupId)
+          .then(() => {
+            wx.hideLoading();
+            wx.showToast({ title: '已删除', icon: 'none' });
+            this._loadGroups();
+          })
+          .catch((err) => {
+            wx.hideLoading();
+            wx.showModal({ title: '删除失败', content: err.message || '未知错误', showCancel: false });
+          });
       },
     });
   },
