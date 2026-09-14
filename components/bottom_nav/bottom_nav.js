@@ -6,7 +6,7 @@
 // drill-down flow.
 Component({
   properties: {
-    active: { type: String, value: '' }, // 'directory' | 'todo' | 'growth' | 'mine-relations' | 'mine-urging' | 'mine-account' | 'mine-reminder'
+    active: { type: String, value: '' }, // 'directory' | 'todo' | 'growth' | 'mine-relations' | 'mine-urging' | 'mine-account' | 'mine-reminder' | 'mine-password' | 'mine-switch'
     role: { type: String, value: 'student' },
   },
   methods: {
@@ -37,6 +37,8 @@ Component({
         ...(this.data.role === 'parent' ? [{ label: '我的催办', page: 'urging/urging', active: 'mine-urging' }] : []),
         { label: '账号与绑定', page: 'account_link/account_link', active: 'mine-account' },
         { label: '设置提醒', page: 'reminder_settings/reminder_settings', active: 'mine-reminder' },
+        { label: '登录密码', page: 'password_settings/password_settings', active: 'mine-password' },
+        { label: '切换账号', page: 'switch_account/switch_account', active: 'mine-switch' },
       ].filter((o) => o.active !== this.data.active);
 
       wx.showActionSheet({

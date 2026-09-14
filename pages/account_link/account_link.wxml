@@ -21,7 +21,10 @@
     <view wx:for="{{students}}" wx:key="id" class="student-row">
       <view class="student-row-main">
         <text>{{item.name}}<text wx:if="{{item.is_virtual}}" class="virtual-tag">无微信账号</text></text>
-        <button size="mini" class="unlink-btn" data-id="{{item.id}}" bindtap="onRemoveStudent">解除</button>
+        <view class="student-row-actions">
+          <button wx:if="{{item.is_virtual}}" size="mini" class="password-btn" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="onSetStudentPassword">设置密码</button>
+          <button size="mini" class="unlink-btn" data-id="{{item.id}}" bindtap="onRemoveStudent">解除</button>
+        </view>
       </view>
       <view wx:if="{{item.connect_code}}" class="student-code-row">
         <text class="student-code-text">连接码 {{item.connect_code}}</text>

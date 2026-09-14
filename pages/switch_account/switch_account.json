@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "切换账号",
+  "usingComponents": {
+    "bottom-nav": "/components/bottom_nav/bottom_nav"
+  }
+}

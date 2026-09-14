@@ -11,7 +11,7 @@
     <text class="nav-icon">🌱</text>
     <text class="nav-label">成长</text>
   </view>
-  <view class="nav-item {{active === 'mine' || active === 'mine-relations' || active === 'mine-urging' || active === 'mine-account' || active === 'mine-reminder' ? 'active' : ''}}" bindtap="onTapMine">
+  <view class="nav-item {{active === 'mine' || active === 'mine-relations' || active === 'mine-urging' || active === 'mine-account' || active === 'mine-reminder' || active === 'mine-password' || active === 'mine-switch' ? 'active' : ''}}" bindtap="onTapMine">
     <text class="nav-icon">👤</text>
     <text class="nav-label">我的</text>
   </view>

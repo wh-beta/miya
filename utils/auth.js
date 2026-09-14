@@ -1,9 +1,21 @@
 const { API_BASE_URL, DEV_MOCK_LOGIN } = require('./config.js');
 
 let _openid = null;
+// Set true only by switchAccount, below — lets a page (e.g. the 我的 action
+// sheet) tell whether the active session is a real WeChat login or a
+// virtual student borrowed via switchAccount, without needing its own
+// round-trip to the server. wx.login() always resolves the true underlying
+// WeChat identity regardless of this flag or of what _openid currently
+// holds, so "switch back" never needs to remember the original openid —
+// re-running checkLoginAndRoute() (see switch_account.js) does that for free.
+let _switchedAway = false;
 
 function getOpenid() {
   return _openid;
+}
+
+function isSwitchedAway() {
+  return _switchedAway;
 }
 
 // 任务日历 is home for a known user — parent_home/student_home (the old
@@ -75,6 +87,7 @@ function checkLoginAndRoute(onHasName, onNoName) {
               return;
             }
             _openid = r.data.openid;
+            _switchedAway = false;
             if (r.data.is_new) {
               resolve({ needsRole: true });
             } else {
@@ -266,6 +279,62 @@ function acceptInvite(inviteCode) {
   });
 }
 
+// Sets/changes the password of whichever identity is currently active
+// (a real user's own, or — once switched in via switchAccount — a virtual
+// student's own). See password_settings.js.
+function setMyPassword(password) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/users/me/password`,
+      method: 'PATCH',
+      data: { openid: getOpenid(), password },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '保存失败'))),
+      fail: reject,
+    });
+  });
+}
+
+// A parent setting/changing a linked virtual student's password on their
+// behalf — the only bootstrap path, since the student has no session of
+// their own to set it with until a password already exists. See
+// account_link.js's onSetStudentPassword.
+function setVirtualStudentPassword(studentId, password) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/users/me/virtual_students/${studentId}/password`,
+      method: 'POST',
+      data: { parent_openid: getOpenid(), password },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '设置失败'))),
+      fail: reject,
+    });
+  });
+}
+
+// Temporarily adopts a virtual student's identity for this session (their
+// connect_code + the password a parent set for them via
+// setVirtualStudentPassword) — distinct from claimVirtualStudentAndRoute,
+// which permanently transplants a real openid onto the row. See
+// switch_account.js.
+function switchAccount(code, password) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/auth/switch_account`,
+      method: 'POST',
+      data: { code, password },
+      success: (res) => {
+        if (res.statusCode >= 400) {
+          reject(new Error((res.data && res.data.detail) || '切换失败'));
+          return;
+        }
+        _openid = res.data.openid;
+        _switchedAway = true;
+        resolve(res.data);
+      },
+      fail: reject,
+    });
+  });
+}
+
 module.exports = {
   checkLoginAndRoute,
   registerRoleAndRoute,
@@ -273,8 +342,12 @@ module.exports = {
   claimVirtualStudent,
   claimVirtualStudentAndRoute,
   getOpenid,
+  isSwitchedAway,
   getMyProfile,
   setMyName,
+  setMyPassword,
+  setVirtualStudentPassword,
+  switchAccount,
   listLinkedStudents,
   listLinkedParents,
   linkStudent,

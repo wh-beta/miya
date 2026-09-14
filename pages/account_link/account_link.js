@@ -1,6 +1,7 @@
 const {
   getMyProfile,
   setMyName,
+  setVirtualStudentPassword,
   listLinkedStudents,
   linkStudent,
   unlinkStudent,
@@ -124,6 +125,29 @@ Page({
         this.refreshStudents();
       })
       .catch((err) => wx.showToast({ title: err.message || '添加失败', icon: 'none' }));
+  },
+  // Bootstraps or changes a virtual student's password — the only way one
+  // ever gets set, since the student has no session of their own to open
+  // password_settings with until this has happened at least once. See
+  // switch_account.js, which is what actually consumes it.
+  onSetStudentPassword(e) {
+    const { id, name } = e.currentTarget.dataset;
+    wx.showModal({
+      title: `设置${name || '学生'}的密码`,
+      editable: true,
+      placeholderText: '用于该学生在其他手机上切换账号',
+      success: (res) => {
+        const password = (res.content || '').trim();
+        if (!res.confirm) return;
+        if (!password) {
+          wx.showToast({ title: '密码不能为空', icon: 'none' });
+          return;
+        }
+        setVirtualStudentPassword(id, password)
+          .then(() => wx.showToast({ title: '已设置' }))
+          .catch((err) => wx.showToast({ title: err.message || '设置失败', icon: 'none' }));
+      },
+    });
   },
   onRemoveStudent(e) {
     const id = e.currentTarget.dataset.id;

@@ -1,0 +1,30 @@
+<view class="page">
+  <view class="header">
+    <text class="title">切换账号</text>
+  </view>
+
+  <block wx:if="{{switchedAway}}">
+    <view class="hint-card">当前身份：{{activeName || '（无WeChat账号的学生）'}}</view>
+    <button class="primary-btn" bindtap="onSwitchBack" loading="{{working}}" disabled="{{working}}">
+      {{working ? '切换中...' : '切换回我的账号'}}
+    </button>
+  </block>
+
+  <block wx:else>
+    <view class="hint-card">
+      适用于没有微信账号的学生，在家长或他人的手机上用自己的连接码和密码临时切换为自己的身份。密码由家长在"账号与绑定"页为该学生设置。
+    </view>
+
+    <text class="field-label">连接码</text>
+    <input class="field-input" value="{{codeInput}}" bindinput="onCodeInput" placeholder="学生自己的连接码" />
+
+    <text class="field-label">密码</text>
+    <input class="field-input" password value="{{passwordInput}}" bindinput="onPasswordInput" placeholder="家长为该学生设置的密码" />
+
+    <button class="primary-btn" bindtap="onSwitch" loading="{{working}}" disabled="{{working}}">
+      {{working ? '切换中...' : '切换'}}
+    </button>
+  </block>
+
+  <bottom-nav active="mine-switch" role="{{role}}" />
+</view>

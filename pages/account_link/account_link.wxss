@@ -109,6 +109,16 @@
   border-radius: 999rpx;
 }
 
+.student-row-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
+.password-btn {
+  background: #EEF4E9;
+  color: #5B6A5F;
+}
+
 .unlink-btn {
   background: #FCE4DF;
   color: #D8503C;
