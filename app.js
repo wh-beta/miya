@@ -18,6 +18,40 @@ function capturePendingMaterial(options) {
   }
 }
 
+// WeChat only auto-navigates to a scene's deep-linked page (options.path +
+// options.query) on a genuine cold launch. If the mini-program was merely
+// resumed from the background — suspended, not killed — tapping a shared
+// 课程表 link/image (一键共享's ?group=, 邀请加入's ?invite=) just brings the
+// existing instance to the foreground wherever it already was sitting,
+// silently dropping the query entirely: confirmed via debugLog, an
+// app_onShow correctly reported {group:"1"} in its options.query, but
+// school_schedule_onLoad never fired at all right after it — the user
+// landed on whatever page the app happened to already be showing, with no
+// group ever resolved (see the "你还没有任何班级课程表" empty state, not
+// even the "no access to this group" one, since school_schedule.js's
+// onLoad never saw a group param to begin with). Re-navigating by hand
+// fixes it, scoped tightly to this one query shape (and skipped if the
+// current top page already matches it) so an ordinary app-switch-and-back
+// resume elsewhere in the app never triggers an unexpected page jump.
+function reenterScheduleLinkIfNeeded(options) {
+  const path = options && options.path;
+  const query = (options && options.query) || {};
+  if (path !== 'pages/school_schedule/school_schedule') return;
+  if (!query.group && !query.invite) return;
+
+  const pages = getCurrentPages();
+  const current = pages[pages.length - 1];
+  const currentOptions = (current && current.options) || {};
+  const alreadyThere =
+    current && current.route === path && currentOptions.group === query.group && currentOptions.invite === query.invite;
+  if (alreadyThere) return;
+
+  const qs = Object.keys(query)
+    .map((k) => `${k}=${encodeURIComponent(query[k])}`)
+    .join('&');
+  wx.reLaunch({ url: `/${path}${qs ? '?' + qs : ''}` });
+}
+
 App({
   onLaunch(options) {
     // Entry point; routing to the parent/student home page happens via app.json's pages list.
@@ -32,5 +66,6 @@ App({
   onShow(options) {
     capturePendingMaterial(options);
     debugLog('app_onShow', { options, sync: wx.getLaunchOptionsSync && wx.getLaunchOptionsSync() });
+    reenterScheduleLinkIfNeeded(options);
   },
 });
