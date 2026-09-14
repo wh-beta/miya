@@ -19,7 +19,8 @@
     "pages/urging/urging",
     "pages/reminder_settings/reminder_settings",
     "pages/password_settings/password_settings",
-    "pages/switch_account/switch_account"
+    "pages/switch_account/switch_account",
+    "pages/role_setup/role_setup"
   ],
   "window": {
     "navigationBarTitleText": "课后助手"

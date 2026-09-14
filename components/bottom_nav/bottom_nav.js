@@ -6,7 +6,7 @@
 // drill-down flow.
 Component({
   properties: {
-    active: { type: String, value: '' }, // 'directory' | 'todo' | 'growth' | 'mine-relations' | 'mine-urging' | 'mine-account' | 'mine-reminder' | 'mine-password' | 'mine-switch' | 'mine-setup'
+    active: { type: String, value: '' }, // 'directory' | 'todo' | 'growth' | 'mine-relations' | 'mine-urging' | 'mine-account' | 'mine-reminder' | 'mine-password' | 'mine-switch' | 'mine-name' | 'mine-role'
     role: { type: String, value: 'student' },
   },
   methods: {
@@ -36,10 +36,13 @@ Component({
         { label: '关系列表', page: 'relations/relations', active: 'mine-relations' },
         ...(this.data.role === 'parent' ? [{ label: '我的催办', page: 'urging/urging', active: 'mine-urging' }] : []),
         { label: '账号与绑定', page: 'account_link/account_link', active: 'mine-account' },
-        // checkLoginAndRoute silently assigns every brand-new visitor a
-        // placeholder name and a best-guess role (see utils/auth.js) —
-        // this is where they review/correct either one.
-        { label: '完善资料（身份与姓名）', page: 'quick_setup/quick_setup', active: 'mine-setup' },
+        // checkLoginAndRoute silently registers every brand-new visitor
+        // with a placeholder name and no role at all (see utils/auth.js) —
+        // these are where they set/review each. Split into two pages, not
+        // one, because they now follow different rules: role locks once a
+        // connection exists (see role_setup.js), name never does.
+        { label: '姓名设置', page: 'quick_setup/quick_setup', active: 'mine-name' },
+        { label: '身份设置', page: 'role_setup/role_setup', active: 'mine-role' },
         { label: '设置提醒', page: 'reminder_settings/reminder_settings', active: 'mine-reminder' },
         { label: '登录密码', page: 'password_settings/password_settings', active: 'mine-password' },
         { label: '切换账号', page: 'switch_account/switch_account', active: 'mine-switch' },

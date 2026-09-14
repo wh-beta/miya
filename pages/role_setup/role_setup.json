@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "姓名设置",
+  "navigationBarTitleText": "身份设置",
   "usingComponents": {
     "bottom-nav": "/components/bottom_nav/bottom_nav"
   }

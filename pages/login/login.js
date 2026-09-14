@@ -36,17 +36,14 @@ Page({
 
   _runCheck() {
     this.setData({ checking: true, showManualPicker: false });
-    // this._forcedRole (set in onLoad from ?invite=) as checkLoginAndRoute's
-    // roleHint: an invite is always parent-inviting-student, and a
-    // brand-new opener now gets silently registered with that role right
-    // inside /auth/login — passing it here is what makes that registration
-    // pick up 'student' instead of the arbitrary default. needsRole below
-    // is now only ever true in DEV_MOCK_LOGIN (which never reaches this
-    // function at all — see onLoad) or a network hiccup on the follow-up
-    // /users/me check (see checkLoginAndRoute's onNoName fallback); the
-    // _promptRole/_register branch it guards is a vestigial safety net for
-    // those, not a path any real login is expected to take anymore.
-    checkLoginAndRoute(undefined, undefined, this._forcedRole)
+    // needsRole below is now only ever true in DEV_MOCK_LOGIN (which never
+    // reaches this function at all — see onLoad) or a network hiccup on
+    // the follow-up /users/me check (see checkLoginAndRoute's onNoName
+    // fallback) — role isn't decided at login anymore at all (see the
+    // backend's User.role docstring), so the _promptRole/_register branch
+    // this guards is a vestigial safety net for those, not a path any
+    // real login is expected to take.
+    checkLoginAndRoute()
       .then((result) => {
         // A returning user (needsRole: false) has already been routed
         // away by checkLoginAndRoute itself — nothing left to do here.
@@ -134,7 +131,7 @@ Page({
     // failed (network error) — no openid established yet, so re-run the
     // full check and only register once it actually resolves one.
     this.setData({ checking: true, showManualPicker: false });
-    checkLoginAndRoute(undefined, undefined, role)
+    checkLoginAndRoute()
       .then((result) => {
         if (!result.needsRole) return;
         this._openidReady = true;

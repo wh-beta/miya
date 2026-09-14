@@ -34,52 +34,11 @@
   color: #8B978C;
 }
 
-.role-list {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
-
-.claim-link {
-  margin-top: 8rpx;
-  text-align: center;
-  font-size: 22rpx;
-  color: #8B978C;
-}
-
-.role-btn {
-  width: 100%;
-  background: #DCF0EA;
-  color: #146E64;
-  border: none;
-  border-radius: 20rpx;
-  font-size: 32rpx;
-  font-weight: 700;
-  padding: 28rpx 0;
-  line-height: normal;
-}
-
-.role-btn::after {
-  border: none;
-}
-
-.role-btn:active {
-  background: #C7E6DC;
-}
-
 .name-section {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 12rpx;
-}
-
-.switch-role {
-  margin-top: 8rpx;
-  text-align: center;
-  font-size: 22rpx;
-  color: #8B978C;
 }
 
 .field-input {

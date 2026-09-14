@@ -1,22 +1,19 @@
-// Started out as an identity-*completion* page for a user arriving via a
-// 课程表 link with no role/name on file at all. Now that
-// checkLoginAndRoute's silent registration (see utils/auth.js) guarantees
-// every visitor already has both — a placeholder name and a best-guess
-// role — by the time they could ever reach a page, this has shifted to an
-// identity-*review/correction* page instead: reached either as a fallback
-// for a legacy pre-silent-registration account still missing one (see
-// utils/auth.js's onNoName override and school_schedule.js's onLoad), or,
-// more commonly now, as "完善资料" from 我的 for anyone who wants to check
-// or fix what was silently assigned. Deliberately not login.js's
-// action-sheet popup or account_link.js's full relationship-management
-// page — neither fits reviewing just role+name.
-const { getOpenid, getMyProfile, updateMyRole, setMyName, claimVirtualStudentAndRoute } = require('../../utils/auth.js');
+// A minimal name-completion page — reached as a fallback for a legacy
+// account still missing a name (see utils/auth.js's onNoName override and
+// school_schedule.js's onLoad), or from 我的 as "完善资料" for anyone who
+// wants to review/change their display name. Role picking used to live
+// here too; it now has its own dedicated page (role_setup.js), reachable
+// from 我的 and from account_link.js right where it's actually needed
+// (setting up a parent<->student connection) — role, unlike name, gets
+// locked once a connection exists, and claiming an existing virtual
+// student's identity belongs there now too. See role_setup.js.
+const { getOpenid, getMyProfile, setMyName } = require('../../utils/auth.js');
 const { debugLog } = require('../../utils/debugLog.js');
 
 Page({
   data: {
-    role: '', // '' = not yet chosen; the role-picker step shows until this is set
     name: '',
+    role: '', // display-only, for bottom-nav's routing — this page itself no longer picks a role, see role_setup.js
     saving: false,
     showPrivacyModal: false,
     loading: true,
@@ -32,65 +29,12 @@ Page({
     debugLog('quick_setup_onLoad', { options, hadOpenidAlready: !!getOpenid() });
     this._checkPrivacyAuth();
 
-    if (options.role) {
-      // The caller (e.g. school_schedule.js's redirect) already knows the
-      // right role better than whatever's on file — still worth pulling
-      // the current name in as a starting point rather than making them
-      // retype it from scratch.
-      this.setData({ role: options.role, loading: false });
-      getMyProfile()
-        .then((profile) => {
-          if (profile.name) this.setData({ name: profile.name });
-        })
-        .catch(() => {});
-      return;
-    }
-
     getMyProfile()
       .then((profile) => {
-        this.setData({ role: profile.role || '', name: profile.name || '', loading: false });
+        this._role = profile.role || null; // used to rebuild the return url below
+        this.setData({ name: profile.name || '', role: profile.role || '', loading: false });
       })
       .catch(() => this.setData({ loading: false }));
-  },
-
-  onPickRole(e) {
-    this.setData({ role: e.currentTarget.dataset.role });
-  },
-  onChangeRole() {
-    this.setData({ role: '' });
-  },
-
-  // A student may have started out virtual (added by a parent, no WeChat
-  // account of their own — see account_link.js's "添加学生") and now have
-  // a real account to take that same identity over with, using its
-  // connect_code — skips the name step entirely (a virtual student
-  // already has one) and goes straight back to 课程表.
-  onClaimCode() {
-    wx.showModal({
-      title: '输入连接码',
-      editable: true,
-      placeholderText: '家长已经为你创建过账号时使用的连接码',
-      success: (res) => {
-        const code = (res.content || '').trim();
-        if (res.confirm && code) this._claim(code);
-      },
-    });
-  },
-
-  _claim(code) {
-    if (!getOpenid()) {
-      wx.showToast({ title: '登录状态异常，请重新进入', icon: 'none' });
-      return;
-    }
-    this.setData({ saving: true });
-    const goBack = () => {
-      this._returnToApp('student');
-      return Promise.resolve();
-    };
-    claimVirtualStudentAndRoute(code, goBack).catch((err) => {
-      this.setData({ saving: false });
-      wx.showModal({ title: '认领失败', content: err.message || '未知错误', showCancel: false });
-    });
   },
 
   // Same check as account_link.js — the nickname-fill keyboard suggestion
@@ -122,10 +66,6 @@ Page({
   },
 
   onSave() {
-    if (!this.data.role) {
-      wx.showToast({ title: '请先选择身份', icon: 'none' });
-      return;
-    }
     const name = (this.data.name || '').trim();
     if (!name) {
       wx.showToast({ title: '请输入姓名', icon: 'none' });
@@ -140,15 +80,10 @@ Page({
     }
 
     this.setData({ saving: true });
-    const role = this.data.role;
-    // updateMyRole (unlike register_role) always applies, since this page
-    // now exists to let someone *correct* a role silently assigned by
-    // checkLoginAndRoute, not just set one for the first time.
-    updateMyRole(role)
-      .then(() => setMyName(name))
+    setMyName(name)
       .then(() => {
-        debugLog('quick_setup_onSave', { role, invite: this._invite, group: this._group });
-        this._returnToApp(role);
+        debugLog('quick_setup_onSave', { invite: this._invite, group: this._group });
+        this._returnToApp();
       })
       .catch((err) => {
         this.setData({ saving: false });
@@ -161,13 +96,15 @@ Page({
   // get back to) and 我的's general "完善资料" (neither set — just go
   // home). Always bouncing to school_schedule regardless of entry context
   // made sense when that was the only caller; it no longer does.
-  _returnToApp(role) {
+  _returnToApp() {
+    const params = [];
+    if (this._role) params.push(`role=${this._role}`);
     if (this._invite || this._group) {
-      const inviteParam = this._invite ? `&invite=${this._invite}` : '';
-      const groupParam = this._group ? `&group=${this._group}` : '';
-      wx.reLaunch({ url: `/pages/school_schedule/school_schedule?role=${role}${inviteParam}${groupParam}` });
+      if (this._invite) params.push(`invite=${this._invite}`);
+      if (this._group) params.push(`group=${this._group}`);
+      wx.reLaunch({ url: `/pages/school_schedule/school_schedule${params.length ? '?' + params.join('&') : ''}` });
       return;
     }
-    wx.reLaunch({ url: `/pages/task_calendar/task_calendar?role=${role}` });
+    wx.reLaunch({ url: `/pages/task_calendar/task_calendar${params.length ? '?' + params.join('&') : ''}` });
   },
 });

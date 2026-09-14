@@ -6,17 +6,26 @@
   </view>
   <text class="field-hint">点击输入框，键盘上方会出现"使用微信昵称"，点一下即可自动填入</text>
 
+  <view class="role-card">
+    <text class="section-label">身份</text>
+    <view class="role-row">
+      <text class="role-status">{{myRole === 'parent' ? '家长' : (myRole === 'student' ? '学生' : '未设置')}}</text>
+      <text wx:if="{{!hasConnection}}" class="role-edit-link" bindtap="onGoRoleSetup">{{myRole ? '修改' : '去设置'}}</text>
+    </view>
+    <text wx:if="{{!myRole}}" class="hint">绑定学生前需要先设置身份</text>
+  </view>
+
   <view wx:if="{{connectCode}}" class="code-card">
-    <text class="section-label">{{role === 'student' ? '你的连接码' : '你的邀请码'}}</text>
+    <text class="section-label">{{myRole === 'student' ? '你的连接码' : '你的邀请码'}}</text>
     <text class="code-text">{{connectCode}}</text>
-    <text class="hint">{{role === 'student' ? '把这个码告诉家长，用于关联你的任务' : '把这个码告诉学生，或直接分享邀请'}}</text>
+    <text class="hint">{{myRole === 'student' ? '把这个码告诉家长，用于关联你的任务' : '把这个码告诉学生，或直接分享邀请'}}</text>
     <view class="code-actions">
       <button size="mini" bindtap="onCopyCode">复制</button>
-      <button wx:if="{{role === 'parent'}}" size="mini" type="primary" open-type="share">邀请学生加入（可发到群聊）</button>
+      <button wx:if="{{myRole === 'parent'}}" size="mini" type="primary" open-type="share">邀请学生加入（可发到群聊）</button>
     </view>
   </view>
 
-  <block wx:if="{{role === 'parent'}}">
+  <block wx:if="{{myRole === 'parent'}}">
     <text class="section-label">已关联学生</text>
     <view wx:for="{{students}}" wx:key="id" class="student-row">
       <view class="student-row-main">

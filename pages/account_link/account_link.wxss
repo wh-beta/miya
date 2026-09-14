@@ -40,6 +40,33 @@
   margin-top: 8rpx;
 }
 
+.role-card {
+  background: #fff;
+  border: 1rpx solid #DCE6D6;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+}
+
+.role-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.role-status {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #24302A;
+}
+
+.role-edit-link {
+  font-size: 22rpx;
+  color: #146E64;
+  background: #DCF0EA;
+  padding: 6rpx 20rpx;
+  border-radius: 999rpx;
+}
+
 .code-card {
   background: #fff;
   border: 1rpx solid #DCE6D6;

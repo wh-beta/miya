@@ -87,14 +87,15 @@ Page({
     this._afterIdentityResolved();
   },
 
-  // Anything missing — role, name, or both — goes to quick_setup (a real
-  // page, not login.js's action-sheet popup) instead of account_link's
-  // full connections page, carrying along whatever's already known (role,
-  // if resolved) plus the invite code so it's still redeemed once
-  // identity is complete.
-  _goToQuickSetup(role) {
+  // A missing name goes to quick_setup (a real page, not login.js's
+  // action-sheet popup) instead of account_link's full connections page,
+  // carrying along the invite code so it's still redeemed once identity
+  // is complete. Role no longer factors in here at all — quick_setup is
+  // name-only now (see its own docstring); a missing/wrong role is
+  // handled separately by role_setup.js, reached from 我的 or
+  // account_link.js right where it's actually needed.
+  _goToQuickSetup() {
     const params = [];
-    if (role) params.push(`role=${role}`);
     if (this._pendingInvite) params.push(`invite=${this._pendingInvite}`);
     // Confirmed via debugLog on a real device: without this, a brand-new
     // user arriving via a group-targeted 一键共享 link (?role=X&group=Y)
@@ -125,7 +126,7 @@ Page({
             // completely session-less cold launch — quick_setup silently
             // (re-)registers whatever's missing and returns here, no
             // error shown at all.
-            this._goToQuickSetup(null);
+            this._goToQuickSetup();
             return;
           }
           wx.showToast({ title: err.message || '课程表授权失败', icon: 'none' });
@@ -140,17 +141,17 @@ Page({
   _resumeSessionInPlace() {
     this.setData({ loading: true });
     const stayHere = (role) => {
-      this.setData({ role });
+      // role can now legitimately be null (a visitor with no connection
+      // yet — see the backend's User.role docstring) — keep this page's
+      // own url-derived default (set in onLoad) rather than blanking it
+      // out; only adopt the server's role when it actually has one.
+      if (role) this.setData({ role });
       this._afterIdentityResolved();
       return Promise.resolve();
     };
-    // this.data.role already reflects the url's own ?role= (or 'parent' if
-    // unspecified — see onLoad) — passed through as checkLoginAndRoute's
-    // roleHint so a brand-new visitor's silent registration picks up the
-    // right role immediately instead of an arbitrary default.
-    checkLoginAndRoute(stayHere, (role) => this._goToQuickSetup(role), this.data.role)
+    checkLoginAndRoute(stayHere, () => this._goToQuickSetup())
       .then((result) => {
-        if (result.needsRole) this._goToQuickSetup(null);
+        if (result.needsRole) this._goToQuickSetup();
       })
       .catch((err) => {
         this.setData({ loading: false });
@@ -199,7 +200,7 @@ Page({
         // openid recovery, just reached via the "already had a session
         // this page load" path instead of the "just resumed one" path.
         if (err.statusCode === 404) {
-          this._goToQuickSetup(null);
+          this._goToQuickSetup();
           return;
         }
         wx.showToast({ title: err.message || '加载失败', icon: 'none' });

@@ -14,7 +14,9 @@ function goHome(role) {
 
 Page({
   data: {
-    role: 'student',
+    role: 'student', // url-derived, only for navigation/bottom-nav — see myRole for the real, backend-backed role
+    myRole: '', // '' = not set — see role_setup.js, which is what actually sets this
+    hasConnection: false,
     name: '',
     connectCode: '',
     students: [],
@@ -25,11 +27,32 @@ Page({
   onLoad(options) {
     const role = options.role || 'student';
     this.setData({ role });
-    getMyProfile()
-      .then((profile) => this.setData({ name: profile.name || '', connectCode: profile.connect_code || '' }))
-      .catch(() => {});
-    if (role === 'parent') this.refreshStudents();
+    this._refreshProfile();
     this.checkPrivacyAuth();
+  },
+  onShow() {
+    // Picking up a role set/changed on role_setup.js after navigating back.
+    this._refreshProfile();
+  },
+  _refreshProfile() {
+    getMyProfile()
+      .then((profile) => {
+        this.setData({
+          name: profile.name || '',
+          connectCode: profile.connect_code || '',
+          myRole: profile.role || '',
+          hasConnection: !!profile.has_connection,
+        });
+        // Linking/adding a student is parent-only, and now actually
+        // requires the real backend role to be 'parent' (see /links and
+        // /users/me/virtual_students) — gate on that instead of the url's
+        // own role, which can be stale or just wrong.
+        if (profile.role === 'parent') this.refreshStudents();
+      })
+      .catch(() => {});
+  },
+  onGoRoleSetup() {
+    wx.navigateTo({ url: `/pages/role_setup/role_setup?role=${this.data.role}` });
   },
   // The nickname-fill keyboard suggestion (type="nickname" in the wxml)
   // silently degrades to a plain text input — no error — if the user

@@ -20,8 +20,11 @@ function isSwitchedAway() {
 
 // 任务日历 is home for a known user — parent_home/student_home (the old
 // landing page) is now a secondary "目录" screen reached via the bottom nav.
+// role can legitimately be null now (see User.role's docstring on the
+// backend) — omitting the param entirely rather than sending the literal
+// string "null" lets task_calendar's own onLoad fallback apply instead.
 function _navigateTo(role) {
-  wx.reLaunch({ url: `/pages/task_calendar/task_calendar?role=${role}` });
+  wx.reLaunch({ url: `/pages/task_calendar/task_calendar${role ? '?role=' + role : ''}` });
 }
 
 // A user with no name yet (first login) is sent to account_link to set one
@@ -44,16 +47,22 @@ function _checkNameAndRoute(role, onHasName, onNoName) {
       method: 'GET',
       data: { openid: _openid },
       success: (r) => {
+        // role is passed through here so a custom onHasName/onNoName (e.g.
+        // school_schedule.js's stayHere, or its (role) => _goToQuickSetup(role))
+        // actually receives it — the default callbacks above already close
+        // over it and ignore this extra argument, but a caller-supplied one
+        // was previously always getting called with no arguments at all,
+        // silently arriving as undefined.
         if (r.statusCode < 400 && r.data && r.data.name) {
-          whenReady();
+          whenReady(role);
         } else {
-          whenNoName();
+          whenNoName(role);
         }
         resolve(_openid);
       },
       // Can't confirm profile state — fall back to home rather than blocking login.
       fail: () => {
-        whenReady();
+        whenReady(role);
         resolve(_openid);
       },
     });
@@ -62,19 +71,19 @@ function _checkNameAndRoute(role, onHasName, onNoName) {
 
 // Exchanges a fresh wx.login() code for an openid — a returning user has
 // no session persisted across cold starts (see getOpenid, an in-memory
-// variable) but does already have a role on file server-side, so there's
-// no need to ask again every launch. The very first time a given openid is
-// ever seen, POST /auth/login itself silently creates its User row (a
-// placeholder name and a best-guess role — see its docstring, and pass
-// roleHint here whenever the caller already knows one, e.g. an invite
-// that's always parent-inviting-student) rather than requiring a setup
-// page before any real content shows — so needsRole below is only ever
-// true in DEV_MOCK_LOGIN (no persisted account to check against there) or,
-// vanishingly rarely, a legacy account from before this existed that still
-// has no name on file (_checkNameAndRoute's onNoName, i.e. quick_setup.js).
-// Resolves { needsRole, isNew } — isNew lets a caller show a one-time
-// "you're all set, review your profile" nudge.
-function checkLoginAndRoute(onHasName, onNoName, roleHint) {
+// variable) but does already have whatever's on file server-side, so
+// there's no need to ask again every launch. The very first time a given
+// openid is ever seen, POST /auth/login itself silently creates its User
+// row (a placeholder name — see its docstring) rather than requiring a
+// setup page before any real content shows. role comes back possibly
+// null now (see the backend's User.role docstring — it's only required
+// once a connection is being formed, not just to browse) — needsRole
+// below is only ever true in DEV_MOCK_LOGIN (no persisted account to
+// check against there) or, vanishingly rarely, a legacy account from
+// before this existed that still has no name on file (_checkNameAndRoute's
+// onNoName, i.e. quick_setup.js). Resolves { needsRole, isNew } — isNew
+// lets a caller show a one-time "you're all set" nudge.
+function checkLoginAndRoute(onHasName, onNoName) {
   if (DEV_MOCK_LOGIN) {
     return Promise.resolve({ needsRole: true, isNew: true });
   }
@@ -85,7 +94,7 @@ function checkLoginAndRoute(onHasName, onNoName, roleHint) {
           url: `${API_BASE_URL}/auth/login`,
           method: 'POST',
           header: { 'Content-Type': 'application/json' },
-          data: { code: res.code, role_hint: roleHint || undefined },
+          data: { code: res.code },
           success: (r) => {
             if (r.statusCode >= 400) {
               reject(new Error((r.data && r.data.detail) || '登录失败'));
@@ -122,15 +131,17 @@ let _identityPromise = null;
 // redirects anywhere on a legacy no-name account — the calling page just
 // proceeds with whatever's on file. Memoized so multiple pages/calls
 // during one cold launch only ever trigger one wx.login()+/auth/login
-// exchange. roleHint is best-effort, see checkLoginAndRoute.
-function ensureIdentity(roleHint) {
+// exchange. roleHintForMock only picks the fake openid's name in
+// DEV_MOCK_LOGIN (there's no real role to hint at the server anymore —
+// see checkLoginAndRoute).
+function ensureIdentity(roleHintForMock) {
   if (getOpenid()) return Promise.resolve();
   if (DEV_MOCK_LOGIN) {
-    _openid = _openid || '__dev_' + (roleHint || 'parent');
+    _openid = _openid || '__dev_' + (roleHintForMock || 'parent');
     return Promise.resolve();
   }
   if (!_identityPromise) {
-    _identityPromise = checkLoginAndRoute(() => Promise.resolve(), () => Promise.resolve(), roleHint).catch((err) => {
+    _identityPromise = checkLoginAndRoute(() => Promise.resolve(), () => Promise.resolve()).catch((err) => {
       _identityPromise = null; // don't cache a failure forever — let a later call retry
       throw err;
     });
