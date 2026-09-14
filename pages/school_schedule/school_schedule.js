@@ -115,7 +115,8 @@ Page({
         () => {
           wx.showToast({ title: '已获得课程表查看权限', icon: 'none' });
           this._loadGroups();
-          this._maybePromptRole();
+          // Disabled for now — see _maybePromptRole's other call site below.
+          // this._maybePromptRole();
         },
         (err) => {
           if (err.statusCode === 404) {
@@ -142,7 +143,11 @@ Page({
       // loading, so a brand-new viewer doesn't land on "你没有这个班级
       // 课程表的查看权限" for a link that was legitimately shared with them.
       joinScheduleGroup(this._targetGroupId)
-        .then(() => this._maybePromptRole())
+        // Disabled for now — the action sheet was popping up over the
+        // schedule table right as it rendered (see _maybePromptRole's
+        // docstring for why it existed). Re-enable by uncommenting this
+        // line once there's a less intrusive way to ask.
+        // .then(() => this._maybePromptRole())
         .catch(() => {}) // group might not exist, or access already existed some other way — _loadGroups below shows "unavailable" if truly inaccessible
         .then(() => this._loadGroups());
     } else {

@@ -102,9 +102,14 @@ function checkLoginAndRoute(onHasName, onNoName) {
             }
             _openid = r.data.openid;
             _switchedAway = false;
-            if (r.data.is_new) {
-              wx.showToast({ title: '已为您自动创建账号，可前往"我的"完善身份和姓名', icon: 'none', duration: 3000 });
-            }
+            // Disabled for now — the toast was covering real content
+            // (e.g. a schedule page's table) right as it renders, and
+            // overlapping with _maybePromptRole's action sheet in
+            // school_schedule.js. isNew is still resolved below for any
+            // caller that wants it.
+            // if (r.data.is_new) {
+            //   wx.showToast({ title: '已为您自动创建账号，可前往"我的"完善身份和姓名', icon: 'none', duration: 3000 });
+            // }
             _checkNameAndRoute(r.data.role, onHasName, onNoName).then(
               () => resolve({ needsRole: false, isNew: r.data.is_new }),
               reject,
