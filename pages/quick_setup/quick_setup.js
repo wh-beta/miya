@@ -1,14 +1,16 @@
-// A minimal identity-completion page for a user arriving via a 课程表
-// link who's missing a role, a name, or both — deliberately NOT
-// login.js's action-sheet-popup role picker, and NOT account_link.js's
-// full page (name + connect code + linking to other users): the user
-// asked for role selection to be a real page here, and none of
-// account_link's relationship-management UI is relevant when 课程表
-// access comes from the group context this user is already in the
-// middle of joining, not from a parent-child link. See utils/auth.js's
-// onNoName override and school_schedule.js's onLoad for how someone ends
-// up here instead of account_link/login.js's popup.
-const { getOpenid, registerRole, setMyName, claimVirtualStudentAndRoute } = require('../../utils/auth.js');
+// Started out as an identity-*completion* page for a user arriving via a
+// 课程表 link with no role/name on file at all. Now that
+// checkLoginAndRoute's silent registration (see utils/auth.js) guarantees
+// every visitor already has both — a placeholder name and a best-guess
+// role — by the time they could ever reach a page, this has shifted to an
+// identity-*review/correction* page instead: reached either as a fallback
+// for a legacy pre-silent-registration account still missing one (see
+// utils/auth.js's onNoName override and school_schedule.js's onLoad), or,
+// more commonly now, as "完善资料" from 我的 for anyone who wants to check
+// or fix what was silently assigned. Deliberately not login.js's
+// action-sheet popup or account_link.js's full relationship-management
+// page — neither fits reviewing just role+name.
+const { getOpenid, getMyProfile, updateMyRole, setMyName, claimVirtualStudentAndRoute } = require('../../utils/auth.js');
 const { debugLog } = require('../../utils/debugLog.js');
 
 Page({
@@ -17,6 +19,7 @@ Page({
     name: '',
     saving: false,
     showPrivacyModal: false,
+    loading: true,
   },
 
   onLoad(options) {
@@ -26,9 +29,28 @@ Page({
     // so a brand-new user still lands on the right class, not just the
     // right page. See school_schedule.js's _goToQuickSetup for why.
     this._group = options.group || null;
-    if (options.role) this.setData({ role: options.role });
     debugLog('quick_setup_onLoad', { options, hadOpenidAlready: !!getOpenid() });
     this._checkPrivacyAuth();
+
+    if (options.role) {
+      // The caller (e.g. school_schedule.js's redirect) already knows the
+      // right role better than whatever's on file — still worth pulling
+      // the current name in as a starting point rather than making them
+      // retype it from scratch.
+      this.setData({ role: options.role, loading: false });
+      getMyProfile()
+        .then((profile) => {
+          if (profile.name) this.setData({ name: profile.name });
+        })
+        .catch(() => {});
+      return;
+    }
+
+    getMyProfile()
+      .then((profile) => {
+        this.setData({ role: profile.role || '', name: profile.name || '', loading: false });
+      })
+      .catch(() => this.setData({ loading: false }));
   },
 
   onPickRole(e) {
@@ -62,9 +84,7 @@ Page({
     }
     this.setData({ saving: true });
     const goBack = () => {
-      const inviteParam = this._invite ? `&invite=${this._invite}` : '';
-      const groupParam = this._group ? `&group=${this._group}` : '';
-      wx.reLaunch({ url: `/pages/school_schedule/school_schedule?role=student${inviteParam}${groupParam}` });
+      this._returnToApp('student');
       return Promise.resolve();
     };
     claimVirtualStudentAndRoute(code, goBack).catch((err) => {
@@ -121,20 +141,33 @@ Page({
 
     this.setData({ saving: true });
     const role = this.data.role;
-    // registerRole is idempotent — safe whether this user already had a
-    // role (just missing a name) or is picking one for the first time
-    // right here.
-    registerRole(role)
+    // updateMyRole (unlike register_role) always applies, since this page
+    // now exists to let someone *correct* a role silently assigned by
+    // checkLoginAndRoute, not just set one for the first time.
+    updateMyRole(role)
       .then(() => setMyName(name))
       .then(() => {
-        const inviteParam = this._invite ? `&invite=${this._invite}` : '';
-        const groupParam = this._group ? `&group=${this._group}` : '';
         debugLog('quick_setup_onSave', { role, invite: this._invite, group: this._group });
-        wx.reLaunch({ url: `/pages/school_schedule/school_schedule?role=${role}${inviteParam}${groupParam}` });
+        this._returnToApp(role);
       })
       .catch((err) => {
         this.setData({ saving: false });
         wx.showToast({ title: err.message || '保存失败', icon: 'none' });
       });
+  },
+
+  // Reached from two very different places now: school_schedule.js's
+  // redirect (this._invite/_group set — there's a specific schedule to
+  // get back to) and 我的's general "完善资料" (neither set — just go
+  // home). Always bouncing to school_schedule regardless of entry context
+  // made sense when that was the only caller; it no longer does.
+  _returnToApp(role) {
+    if (this._invite || this._group) {
+      const inviteParam = this._invite ? `&invite=${this._invite}` : '';
+      const groupParam = this._group ? `&group=${this._group}` : '';
+      wx.reLaunch({ url: `/pages/school_schedule/school_schedule?role=${role}${inviteParam}${groupParam}` });
+      return;
+    }
+    wx.reLaunch({ url: `/pages/task_calendar/task_calendar?role=${role}` });
   },
 });

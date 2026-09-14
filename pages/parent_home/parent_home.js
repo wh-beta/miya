@@ -1,4 +1,4 @@
-const { getMyProfile } = require('../../utils/auth.js');
+const { ensureIdentity, getMyProfile } = require('../../utils/auth.js');
 
 Page({
   data: { role: 'parent', greeting: '你好，家长' },
@@ -6,7 +6,12 @@ Page({
     this.setData({ role: options.role || 'parent' });
   },
   onShow() {
-    getMyProfile()
+    // This page shares itself (see onShareAppMessage below), so it can be
+    // a cold, session-less launch just like login.js/school_schedule.js —
+    // ensureIdentity silently resolves (and, for a brand-new visitor,
+    // registers) one before this needs it.
+    ensureIdentity(this.data.role)
+      .then(() => getMyProfile())
       .then((p) => this.setData({ greeting: `你好，${p.name || '家长'}` }))
       .catch(() => {});
   },

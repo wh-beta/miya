@@ -144,7 +144,11 @@ Page({
       this._afterIdentityResolved();
       return Promise.resolve();
     };
-    checkLoginAndRoute(stayHere, (role) => this._goToQuickSetup(role))
+    // this.data.role already reflects the url's own ?role= (or 'parent' if
+    // unspecified — see onLoad) — passed through as checkLoginAndRoute's
+    // roleHint so a brand-new visitor's silent registration picks up the
+    // right role immediately instead of an arbitrary default.
+    checkLoginAndRoute(stayHere, (role) => this._goToQuickSetup(role), this.data.role)
       .then((result) => {
         if (result.needsRole) this._goToQuickSetup(null);
       })

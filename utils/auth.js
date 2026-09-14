@@ -60,18 +60,23 @@ function _checkNameAndRoute(role, onHasName, onNoName) {
   });
 }
 
-// Exchanges a fresh wx.login() code for an openid and checks whether it's
-// already registered — a returning user has no session persisted across
-// cold starts (see getOpenid, an in-memory variable) but does already
-// have a role on file server-side, so there's no need to ask again every
-// launch. Resolves { needsRole: true } for a genuinely new openid (caller
-// should prompt and call registerRoleAndRoute); for a returning user it
-// completes routing itself (via _checkNameAndRoute, see onHasName above)
-// and resolves { needsRole: false } — DEV_MOCK_LOGIN has no persisted
-// account to check against, so it always reports needsRole: true.
-function checkLoginAndRoute(onHasName, onNoName) {
+// Exchanges a fresh wx.login() code for an openid — a returning user has
+// no session persisted across cold starts (see getOpenid, an in-memory
+// variable) but does already have a role on file server-side, so there's
+// no need to ask again every launch. The very first time a given openid is
+// ever seen, POST /auth/login itself silently creates its User row (a
+// placeholder name and a best-guess role — see its docstring, and pass
+// roleHint here whenever the caller already knows one, e.g. an invite
+// that's always parent-inviting-student) rather than requiring a setup
+// page before any real content shows — so needsRole below is only ever
+// true in DEV_MOCK_LOGIN (no persisted account to check against there) or,
+// vanishingly rarely, a legacy account from before this existed that still
+// has no name on file (_checkNameAndRoute's onNoName, i.e. quick_setup.js).
+// Resolves { needsRole, isNew } — isNew lets a caller show a one-time
+// "you're all set, review your profile" nudge.
+function checkLoginAndRoute(onHasName, onNoName, roleHint) {
   if (DEV_MOCK_LOGIN) {
-    return Promise.resolve({ needsRole: true });
+    return Promise.resolve({ needsRole: true, isNew: true });
   }
   return new Promise((resolve, reject) => {
     wx.login({
@@ -80,7 +85,7 @@ function checkLoginAndRoute(onHasName, onNoName) {
           url: `${API_BASE_URL}/auth/login`,
           method: 'POST',
           header: { 'Content-Type': 'application/json' },
-          data: { code: res.code },
+          data: { code: res.code, role_hint: roleHint || undefined },
           success: (r) => {
             if (r.statusCode >= 400) {
               reject(new Error((r.data && r.data.detail) || '登录失败'));
@@ -89,10 +94,12 @@ function checkLoginAndRoute(onHasName, onNoName) {
             _openid = r.data.openid;
             _switchedAway = false;
             if (r.data.is_new) {
-              resolve({ needsRole: true });
-            } else {
-              _checkNameAndRoute(r.data.role, onHasName, onNoName).then(() => resolve({ needsRole: false }), reject);
+              wx.showToast({ title: '已为您自动创建账号，可前往"我的"完善身份和姓名', icon: 'none', duration: 3000 });
             }
+            _checkNameAndRoute(r.data.role, onHasName, onNoName).then(
+              () => resolve({ needsRole: false, isNew: r.data.is_new }),
+              reject,
+            );
           },
           fail: (err) => reject(new Error(err.errMsg || '网络错误')),
         });
@@ -100,6 +107,35 @@ function checkLoginAndRoute(onHasName, onNoName) {
       fail: (err) => reject(new Error(err.errMsg || 'wx.login 失败')),
     });
   });
+}
+
+let _identityPromise = null;
+
+// Guarantees getOpenid() is resolved before a page proceeds, regardless of
+// which page happens to be the cold-launch entry point — a shared card or
+// QR code can point at almost any page's own path (parent_home.js and
+// student_home.js both share themselves via onShareAppMessage, same as
+// school_schedule.js does, but had no cold-launch handling of their own —
+// this covers that gap once, centrally, instead of every page needing its
+// own copy of login.js/school_schedule.js's recovery logic). Silent by
+// design: unlike checkLoginAndRoute's own default callbacks, this never
+// redirects anywhere on a legacy no-name account — the calling page just
+// proceeds with whatever's on file. Memoized so multiple pages/calls
+// during one cold launch only ever trigger one wx.login()+/auth/login
+// exchange. roleHint is best-effort, see checkLoginAndRoute.
+function ensureIdentity(roleHint) {
+  if (getOpenid()) return Promise.resolve();
+  if (DEV_MOCK_LOGIN) {
+    _openid = _openid || '__dev_' + (roleHint || 'parent');
+    return Promise.resolve();
+  }
+  if (!_identityPromise) {
+    _identityPromise = checkLoginAndRoute(() => Promise.resolve(), () => Promise.resolve(), roleHint).catch((err) => {
+      _identityPromise = null; // don't cache a failure forever — let a later call retry
+      throw err;
+    });
+  }
+  return _identityPromise;
 }
 
 // Registers a chosen role for the openid checkLoginAndRoute already
@@ -185,6 +221,24 @@ function getMyProfile() {
       method: 'GET',
       data: { openid: getOpenid() },
       success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '获取信息失败'))),
+      fail: reject,
+    });
+  });
+}
+
+// An explicit, user-initiated role correction — unlike registerRole/
+// registerRoleAndRoute, which lock a role in on first creation and no-op
+// on any later call for the same openid by design. Needed now that
+// checkLoginAndRoute's silent registration assigns a brand-new visitor's
+// role from a guess: anyone defaulted wrong needs a way to fix it. See
+// quick_setup.js's "身份选错了？重新选择".
+function updateMyRole(role) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/users/me/role`,
+      method: 'PATCH',
+      data: { openid: getOpenid(), role },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '保存失败'))),
       fail: reject,
     });
   });
@@ -342,9 +396,11 @@ module.exports = {
   claimVirtualStudent,
   claimVirtualStudentAndRoute,
   getOpenid,
+  ensureIdentity,
   isSwitchedAway,
   getMyProfile,
   setMyName,
+  updateMyRole,
   setMyPassword,
   setVirtualStudentPassword,
   switchAccount,

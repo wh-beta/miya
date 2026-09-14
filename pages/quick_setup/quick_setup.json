@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "填写姓名"
+  "navigationBarTitleText": "完善资料",
+  "usingComponents": {
+    "bottom-nav": "/components/bottom_nav/bottom_nav"
+  }
 }

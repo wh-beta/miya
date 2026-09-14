@@ -29,6 +29,11 @@
   color: #8B978C;
 }
 
+.loading-hint {
+  font-size: 24rpx;
+  color: #8B978C;
+}
+
 .role-list {
   width: 100%;
   display: flex;

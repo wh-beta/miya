@@ -1,7 +1,7 @@
 const { listTasks, updateTaskStatus, urgeTask, deleteTask, uploadTaskCompletionImage } = require('../../utils/tasks.js');
 const { listClasses, updateClassStatus, urgeClass, deleteClass, uploadClassCompletionImage } = require('../../utils/classes.js');
 const { addTaskToPhoneCalendar, addSessionToPhoneCalendar } = require('../../utils/calendar.js');
-const { getMyProfile, listLinkedStudents, acceptInvite } = require('../../utils/auth.js');
+const { ensureIdentity, getMyProfile, listLinkedStudents, acceptInvite } = require('../../utils/auth.js');
 const { getProgress } = require('../../utils/progress.js');
 const {
   todayStr,
@@ -93,8 +93,14 @@ Page({
     this._items = [];
   },
   onShow() {
-    this.consumePending();
-    this.refreshAll();
+    // Normally reached only after identity is already resolved elsewhere
+    // (login.js, school_schedule.js, parent_home/student_home) — this is
+    // just the same defensive guarantee as those, in case a tap ever lands
+    // here before that finished (see ensureIdentity's docstring).
+    ensureIdentity(this.data.role).then(() => {
+      this.consumePending();
+      this.refreshAll();
+    });
   },
   // This page is now the landing page for a known user (see auth.js's
   // _navigateTo), so this is where both of these hand-offs land instead of
