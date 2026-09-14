@@ -27,12 +27,19 @@ function capturePendingMaterial(options) {
 // app_onShow correctly reported {group:"1"} in its options.query, but
 // school_schedule_onLoad never fired at all right after it — the user
 // landed on whatever page the app happened to already be showing, with no
-// group ever resolved (see the "你还没有任何班级课程表" empty state, not
-// even the "no access to this group" one, since school_schedule.js's
-// onLoad never saw a group param to begin with). Re-navigating by hand
-// fixes it, scoped tightly to this one query shape (and skipped if the
-// current top page already matches it) so an ordinary app-switch-and-back
-// resume elsewhere in the app never triggers an unexpected page jump.
+// group ever resolved. Re-navigating by hand fixes that, but ONLY matters
+// for a true resume — on a cold launch the framework already does this
+// itself correctly. _justLaunched (below) is the guard for that: without
+// it, this ran on every onShow including the one immediately following a
+// cold onLaunch, and getCurrentPages() isn't reliably populated yet at
+// that exact synchronous instant, so it looked like "not there yet" and
+// fired a second, redundant wx.reLaunch — confirmed via debugLog as two
+// school_schedule_onLoad calls ~160ms apart right after one onLaunch,
+// which raced the identity/group-join flow and lost it entirely (the
+// "你没有这个班级课程表的查看权限" report this was meant to fix, caused by
+// this fix's own first version).
+let _justLaunched = false;
+
 function reenterScheduleLinkIfNeeded(options) {
   const path = options && options.path;
   const query = (options && options.query) || {};
@@ -57,6 +64,7 @@ App({
     // Entry point; routing to the parent/student home page happens via app.json's pages list.
     capturePendingMaterial(options);
     debugLog('app_onLaunch', { options, sync: wx.getLaunchOptionsSync && wx.getLaunchOptionsSync() });
+    _justLaunched = true;
   },
   // If the mini-program was already running/suspended in the background
   // rather than being freshly cold-started, onLaunch won't fire again for
@@ -66,6 +74,14 @@ App({
   onShow(options) {
     capturePendingMaterial(options);
     debugLog('app_onShow', { options, sync: wx.getLaunchOptionsSync && wx.getLaunchOptionsSync() });
+    // This onShow immediately follows onLaunch on a cold start — the
+    // framework itself already navigated to options.path/query correctly
+    // in that case. Only a later onShow (a true resume, _justLaunched
+    // already consumed) needs the manual re-navigate above.
+    if (_justLaunched) {
+      _justLaunched = false;
+      return;
+    }
     reenterScheduleLinkIfNeeded(options);
   },
 });
