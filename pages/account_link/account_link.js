@@ -8,10 +8,6 @@ const {
   addVirtualStudent,
 } = require('../../utils/auth.js');
 
-function goHome(role) {
-  wx.reLaunch({ url: `/pages/task_calendar/task_calendar?role=${role}` });
-}
-
 Page({
   data: {
     role: 'student', // url-derived, only for navigation/bottom-nav — see myRole for the real, backend-backed role
@@ -184,9 +180,6 @@ Page({
           .catch((err) => wx.showToast({ title: err.message || '解除失败', icon: 'none' }));
       },
     });
-  },
-  onGoHome() {
-    goHome(this.data.role);
   },
   onShareAppMessage() {
     // Parent-only affordance (see the wxml's open-type="share" button, only

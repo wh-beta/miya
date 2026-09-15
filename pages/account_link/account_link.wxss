@@ -176,9 +176,6 @@
   font-style: italic;
 }
 
-.go-home-btn {
-  margin-top: 48rpx;
-}
 
 .privacy-overlay {
   position: fixed;
