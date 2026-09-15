@@ -9,10 +9,63 @@
     </view>
   </view>
 
-  <view class="placeholder">
-    <text class="icon">🌱</text>
-    <text class="title">成长记录</text>
-    <text class="desc">敬请期待</text>
+  <view class="section-header">
+    <text class="section-title">成长记录</text>
   </view>
+
+  <view wx:if="{{loading}}" class="empty-state">加载中...</view>
+
+  <block wx:elif="{{role === 'parent'}}">
+    <view wx:if="{{sections.length === 0}}" class="empty-state">
+      还没有关联任何学生。前往"账号与绑定"添加学生后即可记录成长。
+    </view>
+    <view wx:for="{{sections}}" wx:key="id" wx:for-item="section" class="student-section">
+      <view class="student-section-header">
+        <text class="student-name">{{section.name}}</text>
+        <button size="mini" class="add-btn" data-id="{{section.id}}" data-name="{{section.name}}" bindtap="onAddRecord">➕ 添加记录</button>
+      </view>
+      <view wx:if="{{section.records.length === 0}}" class="empty-hint">还没有记录</view>
+      <view wx:for="{{section.records}}" wx:key="id" wx:for-item="item" class="record-card">
+        <view class="record-top">
+          <text class="subject-chip">{{item.subject}}</text>
+          <text wx:if="{{item.exam_name}}" class="exam-name">{{item.exam_name}}</text>
+          <text wx:if="{{item.scoreLabel}}" class="score-label">{{item.scoreLabel}}</text>
+        </view>
+        <text wx:if="{{item.record_date}}" class="record-date">{{item.record_date}}</text>
+        <text wx:if="{{item.note}}" class="record-note">{{item.note}}</text>
+        <image
+          wx:if="{{item.imageUrl}}"
+          class="record-thumb"
+          src="{{item.imageUrl}}"
+          mode="aspectFill"
+          data-url="{{item.imageUrl}}"
+          bindtap="onPreviewImage"
+        />
+        <text class="delete-link" data-id="{{item.id}}" bindtap="onDeleteRecord">删除</text>
+      </view>
+    </view>
+  </block>
+
+  <block wx:else>
+    <view wx:if="{{myRecords.length === 0}}" class="empty-state">还没有成长记录</view>
+    <view wx:for="{{myRecords}}" wx:key="id" wx:for-item="item" class="record-card">
+      <view class="record-top">
+        <text class="subject-chip">{{item.subject}}</text>
+        <text wx:if="{{item.exam_name}}" class="exam-name">{{item.exam_name}}</text>
+        <text wx:if="{{item.scoreLabel}}" class="score-label">{{item.scoreLabel}}</text>
+      </view>
+      <text wx:if="{{item.record_date}}" class="record-date">{{item.record_date}}</text>
+      <text wx:if="{{item.note}}" class="record-note">{{item.note}}</text>
+      <image
+        wx:if="{{item.imageUrl}}"
+        class="record-thumb"
+        src="{{item.imageUrl}}"
+        mode="aspectFill"
+        data-url="{{item.imageUrl}}"
+        bindtap="onPreviewImage"
+      />
+    </view>
+  </block>
+
   <bottom-nav active="growth" role="{{role}}" />
 </view>

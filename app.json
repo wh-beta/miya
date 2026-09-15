@@ -22,7 +22,8 @@
     "pages/switch_account/switch_account",
     "pages/role_setup/role_setup",
     "pages/mine/mine",
-    "pages/notifications/notifications"
+    "pages/notifications/notifications",
+    "pages/growth_entry/growth_entry"
   ],
   "window": {
     "navigationBarTitleText": "课后助手"

@@ -49,26 +49,120 @@
   font-weight: 300;
 }
 
-.placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16rpx;
-  padding: 100rpx 0;
+.section-header {
+  margin-bottom: 16rpx;
 }
 
-.icon {
-  font-size: 80rpx;
-}
-
-.title {
+.section-title {
   font-size: 32rpx;
   font-weight: 700;
   color: #24302A;
 }
 
-.desc {
+.empty-state {
+  background: #fff;
+  border: 1rpx solid #DCE6D6;
+  border-radius: 20rpx;
+  padding: 60rpx 32rpx;
+  text-align: center;
+  font-size: 26rpx;
+  color: #8B978C;
+}
+
+.empty-hint {
   font-size: 24rpx;
   color: #8B978C;
+  padding: 16rpx 4rpx;
+}
+
+.student-section {
+  margin-bottom: 28rpx;
+}
+
+.student-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.student-name {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #24302A;
+}
+
+.add-btn {
+  color: #146E64;
+  background: #DCF0EA;
+  margin: 0;
+  line-height: 1.8;
+}
+
+.record-card {
+  background: #fff;
+  border: 1rpx solid #DCE6D6;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 12rpx;
+  position: relative;
+}
+
+.record-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+.subject-chip {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #146E64;
+  background: #DCF0EA;
+  border-radius: 999rpx;
+  padding: 4rpx 18rpx;
+}
+
+.exam-name {
+  font-size: 24rpx;
+  color: #5B6A5F;
+}
+
+.score-label {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #1F8F82;
+  margin-left: auto;
+}
+
+.record-date {
+  display: block;
+  font-size: 20rpx;
+  color: #8B978C;
+  margin-bottom: 6rpx;
+}
+
+.record-note {
+  display: block;
+  font-size: 24rpx;
+  color: #24302A;
+  line-height: 1.5;
+  margin-bottom: 10rpx;
+}
+
+.record-thumb {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  background: #EEF4E9;
+}
+
+.delete-link {
+  position: absolute;
+  top: 20rpx;
+  right: 24rpx;
+  font-size: 22rpx;
+  color: #D8503C;
 }
