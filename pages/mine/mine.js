@@ -7,9 +7,10 @@
 // limit and lets you navigate back to it afterward, unlike the sheet's
 // redirectTo-everything approach.
 const { listNotifications } = require('../../utils/notifications.js');
+const { getMyProfile } = require('../../utils/auth.js');
 
 Page({
-  data: { role: 'student', unreadCount: 0 },
+  data: { role: 'student', unreadCount: 0, name: '我的' },
   onLoad(options) {
     this.setData({ role: options.role || 'student' });
   },
@@ -19,6 +20,15 @@ Page({
     // read) so the badge clears without needing a full page reload.
     listNotifications()
       .then((items) => this.setData({ unreadCount: items.filter((n) => !n.read).length }))
+      .catch(() => {});
+    // Same reasoning — picks up a name just set on 姓名设置 without
+    // needing a full reload. Falls back to the data default ('我的')
+    // rather than clearing it if the profile fetch fails or the name is
+    // still an unset placeholder-less state.
+    getMyProfile()
+      .then((profile) => {
+        if (profile.name) this.setData({ name: profile.name });
+      })
       .catch(() => {});
   },
   onGo(e) {
