@@ -1,0 +1,74 @@
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: #F6F9F2;
+  padding: 24rpx 24rpx 200rpx;
+}
+
+.header {
+  margin-bottom: 20rpx;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #24302A;
+}
+
+.empty-state {
+  background: #fff;
+  border: 1rpx solid #DCE6D6;
+  border-radius: 20rpx;
+  padding: 60rpx 32rpx;
+  text-align: center;
+  font-size: 26rpx;
+  color: #8B978C;
+}
+
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.notif-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  background: #fff;
+  border: 1rpx solid #DCE6D6;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+}
+
+.notif-row.unread {
+  border-color: #1F8F82;
+  background: #F0F8F6;
+}
+
+.unread-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #D8503C;
+  margin-top: 10rpx;
+  flex-shrink: 0;
+}
+
+.notif-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  flex: 1;
+}
+
+.notif-message {
+  font-size: 26rpx;
+  color: #24302A;
+  line-height: 1.5;
+}
+
+.notif-time {
+  font-size: 20rpx;
+  color: #8B978C;
+}

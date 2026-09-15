@@ -4,6 +4,13 @@
   </view>
 
   <view class="menu-list">
+    <view class="menu-row" data-page="notifications/notifications" bindtap="onGo">
+      <text class="menu-label">通知</text>
+      <view class="menu-right">
+        <text wx:if="{{unreadCount > 0}}" class="badge">{{unreadCount}}</text>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
     <view class="menu-row" data-page="relations/relations" bindtap="onGo">
       <text class="menu-label">关系列表</text>
       <text class="menu-arrow">›</text>

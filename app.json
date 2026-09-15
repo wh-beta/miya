@@ -21,7 +21,8 @@
     "pages/password_settings/password_settings",
     "pages/switch_account/switch_account",
     "pages/role_setup/role_setup",
-    "pages/mine/mine"
+    "pages/mine/mine",
+    "pages/notifications/notifications"
   ],
   "window": {
     "navigationBarTitleText": "课后助手"

@@ -6,10 +6,20 @@
 // nothing, looking exactly like a dead/disabled button. A page has no such
 // limit and lets you navigate back to it afterward, unlike the sheet's
 // redirectTo-everything approach.
+const { listNotifications } = require('../../utils/notifications.js');
+
 Page({
-  data: { role: 'student' },
+  data: { role: 'student', unreadCount: 0 },
   onLoad(options) {
     this.setData({ role: options.role || 'student' });
+  },
+  onShow() {
+    // Refreshed every time this page becomes visible (including
+    // navigating back from 通知 itself, right after it marks everything
+    // read) so the badge clears without needing a full page reload.
+    listNotifications()
+      .then((items) => this.setData({ unreadCount: items.filter((n) => !n.read).length }))
+      .catch(() => {});
   },
   onGo(e) {
     wx.navigateTo({ url: `/pages/${e.currentTarget.dataset.page}?role=${this.data.role}` });

@@ -1,0 +1,21 @@
+<view class="page">
+  <view class="header">
+    <text class="title">通知</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty-state">加载中...</view>
+
+  <view wx:elif="{{items.length === 0}}" class="empty-state">暂无通知</view>
+
+  <view wx:else class="notif-list">
+    <view wx:for="{{items}}" wx:key="id" class="notif-row {{item.read ? '' : 'unread'}}">
+      <view wx:if="{{!item.read}}" class="unread-dot"></view>
+      <view class="notif-body">
+        <text class="notif-message">{{item.message}}</text>
+        <text class="notif-time">{{item.timeLabel}}</text>
+      </view>
+    </view>
+  </view>
+
+  <bottom-nav active="mine-notifications" role="{{role}}" />
+</view>

@@ -47,3 +47,22 @@
   font-size: 32rpx;
   color: #C5D0BE;
 }
+
+.menu-right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.badge {
+  min-width: 32rpx;
+  height: 32rpx;
+  line-height: 32rpx;
+  padding: 0 8rpx;
+  border-radius: 999rpx;
+  background: #D8503C;
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 700;
+  text-align: center;
+}
