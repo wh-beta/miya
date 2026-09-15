@@ -8,14 +8,14 @@
     <view class="menu-card" bindtap="onViewTaskCalendar">
       <view class="menu-text">
         <text class="menu-title">课外任务</text>
-        <text class="menu-desc">查看作业与课程，跟踪完成进度</text>
+        <text class="menu-desc">查看作业与课外课程，跟踪完成进度</text>
       </view>
       <text class="menu-arrow">›</text>
     </view>
     <view class="menu-card" bindtap="onViewSchoolSchedule">
       <view class="menu-text">
-        <text class="menu-title">学校课程表</text>
-        <text class="menu-desc">查看并编辑每周课程安排，一键共享</text>
+        <text class="menu-title">课程表</text>
+        <text class="menu-desc">查看学校每周课程安排</text>
       </view>
       <text class="menu-arrow">›</text>
     </view>
