@@ -1,7 +1,7 @@
 <view class="bottom-nav">
   <view class="nav-item {{active === 'directory' ? 'active' : ''}}" bindtap="onTapDirectory">
     <text class="nav-icon">☰</text>
-    <text class="nav-label">目录</text>
+    <text class="nav-label">学习</text>
   </view>
   <view class="nav-item {{active === 'todo' ? 'active' : ''}}" bindtap="onTapTodo">
     <text class="nav-icon">✓</text>
