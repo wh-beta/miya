@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "新建作业/课程"
+  "navigationBarTitleText": "新建作业/课程",
+  "usingComponents": {
+    "poem-loading": "/components/poem_loading/poem_loading"
+  }
 }

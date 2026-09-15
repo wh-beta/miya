@@ -111,4 +111,6 @@
   <view class="save-bar">
     <button type="primary" loading="{{saving}}" disabled="{{drafts.length === 0}}" bindtap="onSaveAll">保存全部</button>
   </view>
+
+  <poem-loading visible="{{uploadingImage || uploadingSchedule}}" />
 </view>

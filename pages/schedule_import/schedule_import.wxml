@@ -91,4 +91,6 @@
       <button class="primary-btn" bindtap="onConfirmImport" loading="{{saving}}" disabled="{{saving}}">确认导入</button>
     </view>
   </view>
+
+  <poem-loading visible="{{ocrLoading}}" />
 </view>

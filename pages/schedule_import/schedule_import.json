@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "导入课程表"
+  "navigationBarTitleText": "导入课程表",
+  "usingComponents": {
+    "poem-loading": "/components/poem_loading/poem_loading"
+  }
 }

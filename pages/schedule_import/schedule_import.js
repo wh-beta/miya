@@ -43,7 +43,6 @@ Page({
       sourceType: ['album', 'camera'],
       success: (res) => {
         this.setData({ ocrLoading: true });
-        wx.showToast({ title: '识别中，可能需要一分钟左右', icon: 'none', duration: 3000 });
         uploadWeeklyScheduleImage(res.tempFiles[0].tempFilePath)
           .then((entries) => {
             const grid = emptyGrid();

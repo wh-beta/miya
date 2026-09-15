@@ -1,0 +1,17 @@
+<view wx:if="{{visible}}" class="poem-overlay">
+  <view class="poem-card">
+    <view class="poem-header">
+      <text class="poem-title">{{poem.title}}</text>
+      <text class="poem-author">{{poem.author}}</text>
+    </view>
+    <view class="poem-lines">
+      <text wx:for="{{shownLines}}" wx:key="*this" class="poem-line">{{item}}</text>
+    </view>
+    <view class="poem-dots">
+      <text class="dot"></text>
+      <text class="dot"></text>
+      <text class="dot"></text>
+    </view>
+    <text class="poem-hint">{{hint}}</text>
+  </view>
+</view>

@@ -94,7 +94,6 @@ Page({
     if (!path) return;
     wx.removeStorageSync('pendingMaterialPath');
     this.setData({ itemType: 'task', uploadingImage: true });
-    wx.showToast({ title: '识别中，可能需要一分钟左右', icon: 'none', duration: 3000 });
     uploadTaskListImage(path)
       .then((tasks) => {
         this.appendDrafts(tasks.map((t) => ({ itemType: 'task', title: t.title, subject: t.subject || this.data.selectedSubject, date: dateOnly(t.due_at) })));
@@ -163,7 +162,6 @@ Page({
         mediaType: ['image'],
         sourceType: ['album', 'camera'],
         success: (res) => {
-          wx.showToast({ title: '识别中，可能需要一分钟左右', icon: 'none', duration: 3000 });
           uploadScheduleImage(res.tempFiles[0].tempFilePath)
             .then((sessions) => {
               this.appendDrafts(
@@ -188,7 +186,6 @@ Page({
         mediaType: ['image'],
         sourceType: ['album', 'camera'],
         success: (res) => {
-          wx.showToast({ title: '识别中，可能需要一分钟左右', icon: 'none', duration: 3000 });
           uploadTaskListImage(res.tempFiles[0].tempFilePath)
             .then((tasks) => {
               this.appendDrafts(tasks.map((t) => ({ itemType: 'task', title: t.title, subject: t.subject || this.data.selectedSubject, date: dateOnly(t.due_at) })));
