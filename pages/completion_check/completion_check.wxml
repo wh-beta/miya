@@ -1,5 +1,37 @@
 <view class="page">
-  <image class="completion-image" src="{{imageUrl}}" mode="widthFix" bindtap="onPreviewImage" />
+  <image class="completion-image" src="{{currentUrl || imageUrl}}" mode="widthFix" bindtap="onPreviewImage" />
+
+  <view wx:if="{{images.length > 1}}" class="completion-nav">
+    <button size="mini" disabled="{{currentIndex <= 0}}" bindtap="onPrevImage">‹ 上一张</button>
+    <text class="completion-nav-count">{{currentIndex + 1}} / {{images.length}}</text>
+    <button size="mini" disabled="{{currentIndex >= images.length - 1}}" bindtap="onNextImage">下一张 ›</button>
+  </view>
+
+  <view class="grade-bar">
+    <button size="mini" disabled="{{gradeStatus === 'grading'}}" bindtap="onGradeImage">{{gradeStatus === 'grading' ? '批改中…' : 'AI 批改'}}</button>
+    <text class="hint-text">AI 自动核对这张照片里的作答对错，仅供参考，最终以人工判断为准</text>
+  </view>
+
+  <poem-loading visible="{{gradeStatus === 'grading'}}" hint="AI 批改中，可能需要一分钟左右…" />
+
+  <view wx:if="{{gradeStatus === 'graded'}}" class="grade-results">
+    <text class="section-label">共 {{gradeItems.length}} 题，{{gradeWrongCount}} 题有误</text>
+    <view
+      wx:for="{{gradeItems}}"
+      wx:key="index"
+      class="grade-card {{item.correct ? 'grade-correct' : 'grade-wrong'}}"
+    >
+      <view class="grade-card-top">
+        <text class="grade-mark">{{item.correct ? '✓' : '✗'}}</text>
+        <text class="grade-question">{{item.question}}</text>
+      </view>
+      <text class="grade-answer">学生作答：{{item.student_answer || '（未作答）'}}</text>
+      <block wx:if="{{!item.correct}}">
+        <text wx:if="{{item.correct_answer}}" class="grade-correct-answer">正确答案：{{item.correct_answer}}</text>
+        <text wx:if="{{item.note}}" class="grade-note">{{item.note}}</text>
+      </block>
+    </view>
+  </view>
 
   <view wx:if="{{status === 'idle'}}" class="parse-bar">
     <button size="mini" type="primary" bindtap="onParse">解析题目</button>

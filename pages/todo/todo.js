@@ -84,29 +84,39 @@ Page({
   },
   // Same optional/skippable flow as task_calendar.js — the item disappears
   // from this list right after (done items aren't shown here), but the
-  // prompt still fires at the moment of completion.
+  // prompt still fires at the moment of completion. See task_calendar.js's
+  // _uploadCompletionPhotos for why uploads go one at a time.
   promptCompletionPhoto(item) {
     wx.showModal({
       title: '任务已完成',
-      content: '要上传一张完成照片吗？（可选，可跳过）',
+      content: '要上传完成照片吗？（可选，可跳过，最多可选9张）',
       confirmText: '上传照片',
       cancelText: '跳过',
       success: (res) => {
         if (!res.confirm) return;
         wx.chooseMedia({
-          count: 1,
+          count: 9,
           mediaType: ['image'],
           sourceType: ['album', 'camera'],
-          success: (mediaRes) => {
-            const filePath = mediaRes.tempFiles[0].tempFilePath;
-            const uploadFn = item.kind === 'class' ? uploadClassCompletionImage : uploadTaskCompletionImage;
-            uploadFn(item.id, filePath)
-              .then(() => wx.showToast({ title: '已上传' }))
-              .catch((err) => wx.showToast({ title: err.message || '上传失败', icon: 'none' }));
-          },
+          success: (mediaRes) => this._uploadCompletionPhotos(item, mediaRes.tempFiles.map((f) => f.tempFilePath)),
         });
       },
     });
+  },
+  _uploadCompletionPhotos(item, filePaths, uploaded = 0, failed = 0) {
+    if (filePaths.length === 0) {
+      if (uploaded > 0) {
+        wx.showToast({ title: failed ? `已上传${uploaded}张，${failed}张失败` : `已上传${uploaded}张` });
+      } else {
+        wx.showToast({ title: '上传失败', icon: 'none' });
+      }
+      return;
+    }
+    const [filePath, ...rest] = filePaths;
+    const uploadFn = item.kind === 'class' ? uploadClassCompletionImage : uploadTaskCompletionImage;
+    uploadFn(item.id, filePath)
+      .then(() => this._uploadCompletionPhotos(item, rest, uploaded + 1, failed))
+      .catch(() => this._uploadCompletionPhotos(item, rest, uploaded, failed + 1));
   },
   onAddToCalendar(e) {
     const item = this._findItem(e);

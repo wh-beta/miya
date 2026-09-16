@@ -4,7 +4,7 @@ const { startVoiceRecording, stopVoiceRecordingAndUpload } = require('../../util
 const { getOpenid, getMyProfile, listLinkedStudents } = require('../../utils/auth.js');
 const { dateOnly, todayStr, addDays } = require('../../utils/dates.js');
 
-const SUBJECTS = ['数学', '语文', '英语', '科学', '艺术', '体育'];
+const SUBJECTS = ['数学', '语文', '英语', '物理', '艺术'];
 const TIME_RANGES = ['09:00-10:00', '16:00-17:00', '17:00-18:00', '19:00-20:00'];
 
 Page({
@@ -16,6 +16,7 @@ Page({
     selectedChildName: '',
     subjects: SUBJECTS,
     selectedSubject: SUBJECTS[0],
+    otherSubjectSelected: false,
     mainText: '',
     mainTextPlaceholder: '输入作业内容，可多行，每行一条，例如：\n数学 9.8：口算练习一张\n语文 9.8：预习第3课',
     isRecording: false,
@@ -135,7 +136,14 @@ Page({
     wx.navigateTo({ url: `/pages/account_link/account_link?role=${this.data.role}` });
   },
   onSelectSubject(e) {
-    this.setData({ selectedSubject: e.currentTarget.dataset.subject });
+    this.setData({ selectedSubject: e.currentTarget.dataset.subject, otherSubjectSelected: false });
+  },
+  // "其他" pill — folds the rarely-used custom-subject text box into the
+  // same pill row as the fixed subjects, instead of always showing an input
+  // underneath them. Tapping it clears selectedSubject so a leftover pill
+  // value isn't silently submitted while the input sits empty.
+  onSelectOtherSubject() {
+    this.setData({ otherSubjectSelected: true, selectedSubject: '' });
   },
   onCustomSubjectInput(e) {
     const v = e.detail.value;

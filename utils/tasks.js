@@ -135,6 +135,19 @@ function uploadTaskCompletionImage(taskId, filePath) {
   });
 }
 
+// All photos uploaded for a task so far (task.completion_image_url only
+// ever points at the latest one) — used by completion_check's gallery.
+function listTaskCompletionImages(taskId) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/tasks/${taskId}/completion_images`,
+      method: 'GET',
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '获取失败'))),
+      fail: reject,
+    });
+  });
+}
+
 // "检查" flow, step 1 — OCRs the already-uploaded completion photo and
 // returns candidate questions; nothing is stored yet (see task_bank_review.js).
 function extractTaskCompletionQuestions(taskId) {
@@ -178,6 +191,23 @@ function findSimilarForTaskCandidate(taskId, content, markWrong) {
   });
 }
 
+// AI 批改 — checks the student's handwritten answers in a completion photo
+// against the printed problems and reports right/wrong. Nothing is stored;
+// each call is a fresh check. imageUrl (the completion_images path this
+// page is currently showing) is optional — omitted means the task's latest
+// photo (see server's GradeImageRequest).
+function gradeTaskCompletionImage(taskId, imageUrl) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/tasks/${taskId}/completion_image/grade`,
+      method: 'POST',
+      data: { image_url: imageUrl || null },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '批改失败'))),
+      fail: reject,
+    });
+  });
+}
+
 module.exports = {
   createTask,
   listTasks,
@@ -187,7 +217,9 @@ module.exports = {
   deleteTask,
   uploadTaskListText,
   uploadTaskCompletionImage,
+  listTaskCompletionImages,
   extractTaskCompletionQuestions,
   confirmTaskCompletionQuestions,
   findSimilarForTaskCandidate,
+  gradeTaskCompletionImage,
 };

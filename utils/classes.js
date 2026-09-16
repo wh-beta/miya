@@ -117,6 +117,19 @@ function uploadClassCompletionImage(classId, filePath) {
   });
 }
 
+// All photos uploaded for a class session so far — see tasks.js's
+// listTaskCompletionImages.
+function listClassCompletionImages(classId) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/classes/${classId}/completion_images`,
+      method: 'GET',
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '获取失败'))),
+      fail: reject,
+    });
+  });
+}
+
 // "检查" flow — see tasks.js's extractTaskCompletionQuestions/
 // confirmTaskCompletionQuestions for the two-step rationale.
 function extractClassCompletionQuestions(classId) {
@@ -155,6 +168,19 @@ function findSimilarForClassCandidate(classId, content, markWrong) {
   });
 }
 
+// See tasks.js's gradeTaskCompletionImage for the AI-grading rationale.
+function gradeClassCompletionImage(classId, imageUrl) {
+  return new Promise((resolve, reject) => {
+    wx.request({
+      url: `${API_BASE_URL}/classes/${classId}/completion_image/grade`,
+      method: 'POST',
+      data: { image_url: imageUrl || null },
+      success: (res) => (res.statusCode < 400 ? resolve(res.data) : reject(new Error((res.data && res.data.detail) || '批改失败'))),
+      fail: reject,
+    });
+  });
+}
+
 module.exports = {
   listClasses,
   createClass,
@@ -163,7 +189,9 @@ module.exports = {
   updateClassStatus,
   urgeClass,
   uploadClassCompletionImage,
+  listClassCompletionImages,
   extractClassCompletionQuestions,
   confirmClassCompletionQuestions,
   findSimilarForClassCandidate,
+  gradeClassCompletionImage,
 };

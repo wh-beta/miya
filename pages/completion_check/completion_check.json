@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "检查完成情况"
+  "navigationBarTitleText": "检查完成情况",
+  "usingComponents": {
+    "poem-loading": "/components/poem_loading/poem_loading"
+  }
 }

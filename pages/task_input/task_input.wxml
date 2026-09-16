@@ -26,15 +26,24 @@
     <view
       wx:for="{{subjects}}"
       wx:key="*this"
-      class="pill {{selectedSubject === item ? 'active' : ''}}"
+      class="pill {{!otherSubjectSelected && selectedSubject === item ? 'active' : ''}}"
       data-subject="{{item}}"
       bindtap="onSelectSubject"
     >{{item}}</view>
+    <view class="pill {{otherSubjectSelected ? 'active' : ''}}" bindtap="onSelectOtherSubject">其他</view>
   </view>
-  <input class="field-input" placeholder="或输入自定义科目" bindinput="onCustomSubjectInput" />
+  <input wx:if="{{otherSubjectSelected}}" class="field-input" placeholder="输入科目" value="{{selectedSubject}}" bindinput="onCustomSubjectInput" />
+
+  <text class="section-label">{{itemType === 'task' ? '输入任务' : '课程建议用拍照识别课表，或手动填写时间'}}</text>
+  <view class="quick-actions">
+    <button size="mini" loading="{{uploadingImage || uploadingSchedule}}" bindtap="onQuickImage">{{itemType === 'class' ? '拍照识别课表' : '拍照/图像'}}</button>
+    <button wx:if="{{itemType === 'task'}}" size="mini" bindtap="onQuickPdf">PDF上传</button>
+    <button wx:if="{{itemType === 'task'}}" size="mini" bindtap="onQuickVoice">{{isRecording ? '停止录音' : '语音'}}</button>
+    <button size="mini" bindtap="onQuickManual">类日历输入</button>
+  </view>
 
   <block wx:if="{{itemType === 'task'}}">
-    <text class="section-label">文字输入</text>
+    <text class="section-label">或输入文字</text>
     <textarea
       class="textarea"
       placeholder="{{mainTextPlaceholder}}"
@@ -44,14 +53,6 @@
     />
     <button size="mini" type="primary" bindtap="onParseText">添加</button>
   </block>
-
-  <text class="section-label">{{itemType === 'task' ? '或使用其它方式' : '课程建议用拍照识别课表，或手动填写时间'}}</text>
-  <view class="quick-actions">
-    <button size="mini" loading="{{uploadingImage || uploadingSchedule}}" bindtap="onQuickImage">{{itemType === 'class' ? '拍照识别课表' : '拍照/图像'}}</button>
-    <button wx:if="{{itemType === 'task'}}" size="mini" bindtap="onQuickPdf">PDF上传</button>
-    <button wx:if="{{itemType === 'task'}}" size="mini" bindtap="onQuickVoice">{{isRecording ? '停止录音' : '语音'}}</button>
-    <button size="mini" bindtap="onQuickManual">类日历输入</button>
-  </view>
 
   <view wx:if="{{showManualForm}}" class="inline-form">
     <block wx:if="{{itemType === 'task'}}">

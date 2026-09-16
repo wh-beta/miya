@@ -124,20 +124,30 @@ Page({
       .catch((err) => wx.showToast({ title: err.message || '关联失败', icon: 'none' }));
   },
   refreshAll() {
+    // Identity (myId/myName for a student, linkedStudents for a parent) is
+    // what filterByIdentity scopes tasks by — if this fetch fails, loading
+    // tasks anyway would filter everything out against a stale/missing
+    // identity and render as a plain, indistinguishable-from-real "no
+    // tasks" empty state. Surface the failure instead of proceeding.
     const proceed = () => {
       this.loadItems();
       this.loadProgress();
     };
+    const onIdentityError = () => wx.showToast({ title: '加载身份信息失败，请重试', icon: 'none' });
     if (this.data.role === 'parent') {
       listLinkedStudents()
-        .then((students) => this.setData({ linkedStudents: students }))
-        .catch(() => {})
-        .then(proceed);
+        .then((students) => {
+          this.setData({ linkedStudents: students });
+          proceed();
+        })
+        .catch(onIdentityError);
     } else {
       getMyProfile()
-        .then((p) => this.setData({ myId: p.id, myName: p.name }))
-        .catch(() => {})
-        .then(proceed);
+        .then((p) => {
+          this.setData({ myId: p.id, myName: p.name });
+          proceed();
+        })
+        .catch(onIdentityError);
     }
   },
   loadItems() {
@@ -250,7 +260,14 @@ Page({
   },
   onToggleStatus(e) {
     const item = this._findItem(e);
-    if (!item || item.status === 'done') return;
+    if (!item) return;
+    if (item.status === 'done') {
+      // Already done — nothing to transition to, but the student can still
+      // tap this to (re)upload a completion photo, e.g. if they skipped the
+      // prompt below the first time or want to replace it with a better one.
+      if (this.data.role === 'student') this.promptCompletionPhoto(item);
+      return;
+    }
     const next = NEXT_STATUS[item.status];
     const update = item.kind === 'class' ? updateClassStatus : updateTaskStatus;
     update(item.id, next)
@@ -277,32 +294,49 @@ Page({
   },
   // Optional, skippable — offered to the student right after they mark
   // something done, so a parent can later tap 检查 to see proof of work.
+  // Re-tapping 已完成 on an already-done item (see onToggleStatus) reopens
+  // this too, so photos accumulate across multiple visits, not just one.
   promptCompletionPhoto(item) {
     wx.showModal({
       title: '任务已完成',
-      content: '要上传一张完成照片吗？（可选，可跳过）',
+      content: '要上传完成照片吗？（可选，可跳过，最多可选9张）',
       confirmText: '上传照片',
       cancelText: '跳过',
       success: (res) => {
         if (!res.confirm) return;
         wx.chooseMedia({
-          count: 1,
+          count: 9,
           mediaType: ['image'],
           sourceType: ['album', 'camera'],
-          success: (mediaRes) => {
-            const filePath = mediaRes.tempFiles[0].tempFilePath;
-            const uploadFn = item.kind === 'class' ? uploadClassCompletionImage : uploadTaskCompletionImage;
-            uploadFn(item.id, filePath)
-              .then((updated) => {
-                item.completionImageUrl = updated.completion_image_url;
-                this.renderCurrentView();
-                wx.showToast({ title: '已上传' });
-              })
-              .catch((err) => wx.showToast({ title: err.message || '上传失败', icon: 'none' }));
-          },
+          success: (mediaRes) => this._uploadCompletionPhotos(item, mediaRes.tempFiles.map((f) => f.tempFilePath)),
         });
       },
     });
+  },
+  // Uploads one at a time rather than in parallel: each upload also sets
+  // completion_image_url server-side to itself (the "latest" pointer other
+  // things, like OCR extraction, key off), so out-of-order completions
+  // could otherwise leave it pointing at an earlier photo, not the last one
+  // picked. All uploaded photos are still kept (see CompletionImage table /
+  // GET .../completion_images) regardless of arrival order.
+  _uploadCompletionPhotos(item, filePaths, uploaded = 0, failed = 0) {
+    if (filePaths.length === 0) {
+      if (uploaded > 0) {
+        wx.showToast({ title: failed ? `已上传${uploaded}张，${failed}张失败` : `已上传${uploaded}张` });
+      } else {
+        wx.showToast({ title: '上传失败', icon: 'none' });
+      }
+      return;
+    }
+    const [filePath, ...rest] = filePaths;
+    const uploadFn = item.kind === 'class' ? uploadClassCompletionImage : uploadTaskCompletionImage;
+    uploadFn(item.id, filePath)
+      .then((updated) => {
+        item.completionImageUrl = updated.completion_image_url;
+        this.renderCurrentView();
+        this._uploadCompletionPhotos(item, rest, uploaded + 1, failed);
+      })
+      .catch(() => this._uploadCompletionPhotos(item, rest, uploaded, failed + 1));
   },
   onCheckCompletionImage(e) {
     const { kind, id, url } = e.currentTarget.dataset;
